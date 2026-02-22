@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, CheckCircle, Calendar, Info, Circle, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, ChevronRight, Repeat, CheckCircle, Circle } from 'lucide-react';
 import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import SpeechButton from './SpeechButton';
@@ -7,8 +7,8 @@ import { CATEGORIES as DEFAULT_CATEGORIES, getCategoryByText } from '../lib/cate
 
 interface AddExpenseModalProps {
     onClose: () => void;
-    editItem?: any; // New prop for editing
-    editType?: 'expense' | 'income' | 'recurring' | 'debt'; // New prop for editing
+    editItem?: any;
+    editType?: 'expense' | 'income' | 'recurring' | 'debt';
 }
 
 const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType }) => {
@@ -29,12 +29,14 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
     );
 
     const [allCategories, setAllCategories] = useState<any[]>(DEFAULT_CATEGORIES);
+    const [showRecurringChoice, setShowRecurringChoice] = useState(false);
+    const [pendingData, setPendingData] = useState<any>(null);
 
     useEffect(() => {
         if (!auth.currentUser) return;
         const q = query(collection(db, 'users', auth.currentUser.uid, 'categories'));
-        const unsub = onSnapshot(q, (snap) => {
-            const userCats = snap.docs.map(doc => ({ id: doc.id, ...doc.data(), isUserCat: true }));
+        const unsub = onSnapshot(q, (snap: any) => {
+            const userCats = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data(), isUserCat: true }));
             setAllCategories([...DEFAULT_CATEGORIES, ...userCats]);
         });
         return () => unsub();
@@ -49,18 +51,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         if (detected.id === 'prestamos' || detected.id === 'seguros') setType('debt');
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async (scope: 'single' | 'future' = 'future') => {
         if (!amount || !auth.currentUser) return;
 
         onClose();
 
-        let collectionName = 'expenses';
-        if (type === 'income') collectionName = 'income';
-        else if (type === 'debt') collectionName = 'debts';
-        else if (isRecurring) collectionName = 'recurring_expenses';
-
-        const data: any = {
+        const data: any = pendingData || {
             amount: parseFloat(amount),
             description,
             category,
@@ -69,10 +65,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
             paid: editItem ? editItem.paid : (type === 'income' || (isRecurring && autoDebit)) ? true : false,
         };
 
-        if (!editItem) {
-            data.date = serverTimestamp();
-        }
-
         if (type === 'debt') {
             data.startDate = Timestamp.fromDate(new Date(startDate));
             data.dueDate = Timestamp.fromDate(new Date(dueDate));
@@ -80,13 +72,48 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
         try {
             if (editItem) {
-                const docRef = doc(db, 'users', auth.currentUser.uid, editType === 'recurring' ? 'recurring_expenses' : (editType === 'debt' ? 'debts' : (editType === 'income' ? 'income' : 'expenses')), editItem.id);
+                if (editType === 'recurring' && scope === 'single') {
+                    // "Solo este registro": Mover a la colección de gastos normales para este mes
+                    // y dejar el recurrente original intacto (o podrías marcarlo como 'saltado')
+                    // Por ahora, simplemente lo guardamos como un gasto normal y el usuario verá el cambio solo ahí.
+                    await addDoc(collection(db, 'users', auth.currentUser.uid, 'expenses'), {
+                        ...data,
+                        description: `${data.description} (Excepción ${new Date().toLocaleString('es-ES', { month: 'short' })})`,
+                        date: serverTimestamp()
+                    });
+                    return;
+                }
+
+                const col = editType === 'recurring' ? 'recurring_expenses' : (editType === 'debt' ? 'debts' : (editType === 'income' ? 'income' : 'expenses'));
+                const docRef = doc(db, 'users', auth.currentUser.uid, col, editItem.id);
                 await updateDoc(docRef, data);
             } else {
+                let collectionName = 'expenses';
+                if (type === 'income') collectionName = 'income';
+                else if (type === 'debt') collectionName = 'debts';
+                else if (isRecurring) collectionName = 'recurring_expenses';
+
+                data.date = serverTimestamp();
                 await addDoc(collection(db, 'users', auth.currentUser.uid, collectionName), data);
             }
         } catch (err) {
             console.error("Error saving:", err);
+        }
+    };
+
+    const onFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (editItem && editType === 'recurring') {
+            setPendingData({
+                amount: parseFloat(amount),
+                description,
+                category,
+                autoDebit,
+                isRecurring: true
+            });
+            setShowRecurringChoice(true);
+        } else {
+            handleSave('future');
         }
     };
 
@@ -98,6 +125,41 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
             await deleteDoc(doc(db, 'users', auth.currentUser.uid, col, editItem.id));
         }
     };
+
+    if (showRecurringChoice) {
+        return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(15px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div style={{ width: '100%', maxWidth: '380px', background: '#1c1c1e', borderRadius: '24px', padding: '32px', textAlign: 'center', border: '1px solid #2c2c2e' }}>
+                    <div style={{ width: '64px', height: '64px', background: 'rgba(129, 138, 248, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+                        <Repeat size={32} color="#818cf8" />
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>¿Cómo aplicar el cambio?</h3>
+                    <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5', marginBottom: '32px' }}>
+                        Estás editando un gasto fijo. ¿Deseas que este nuevo monto se aplique a todos los meses futuros o solo como una excepción para este mes?
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <button
+                            onClick={() => handleSave('future')}
+                            style={{ width: '100%', padding: '16px', borderRadius: '14px', background: '#818cf8', color: '#fff', border: 'none', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Todos los meses</span>
+                            <ChevronRight size={18} />
+                        </button>
+                        <button
+                            onClick={() => handleSave('single')}
+                            style={{ width: '100%', padding: '16px', borderRadius: '14px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid #2c2c2e', fontWeight: '500', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Solo este mes</span>
+                            <ChevronRight size={18} />
+                        </button>
+                        <button
+                            onClick={() => setShowRecurringChoice(false)}
+                            style={{ width: '100%', padding: '12px', marginTop: '8px', color: '#666', background: 'none', border: 'none', fontSize: '14px' }}>
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 2000, display: 'flex', alignItems: 'flex-end' }}>
@@ -125,7 +187,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                     </div>
                 )}
 
-                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <form onSubmit={onFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ textAlign: 'center' }}>
                         <input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" style={{ background: 'none', border: 'none', color: '#fff', fontSize: '48px', textAlign: 'center', width: '100%', outline: 'none', fontWeight: '800' }} required autoFocus />
                     </div>
@@ -156,6 +218,16 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <div style={{ flex: 1 }}><label style={{ fontSize: '10px', color: '#666' }}>Inicio</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} /></div>
                                 <div style={{ flex: 1 }}><label style={{ fontSize: '10px', color: '#ef4444' }}>Vence</label><input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} /></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isRecurring && type !== 'debt' && (
+                        <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? 'rgba(129, 138, 248, 0.1)' : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? '#818cf8' : '#2c2c2e', cursor: 'pointer' }}>
+                            {autoDebit ? <CheckCircle size={20} color="#818cf8" /> : <Circle size={20} color="#666" />}
+                            <div style={{ flex: 1 }}>
+                                <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>Pago Automático</p>
+                                <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se marcará como pagado automáticamente' : 'Tendrás que marcarlo como pagado manualmente'}</p>
                             </div>
                         </div>
                     )}
