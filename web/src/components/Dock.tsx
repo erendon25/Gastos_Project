@@ -43,24 +43,27 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
+                                justifyContent: 'center',
                                 gap: '4px',
                                 cursor: 'pointer',
-                                padding: '10px 4px',
-                                borderRadius: '16px',
+                                padding: '8px 4px',
+                                borderRadius: '18px',
                                 position: 'relative',
                                 transition: 'all 0.2s ease',
                                 flex: 1,
+                                height: '56px',
                                 zIndex: 1
                             }}
                         >
                             {isActive && (
                                 <motion.div
                                     layoutId="activeTab"
+                                    className="liquid-glass-inner"
                                     style={{
                                         position: 'absolute',
-                                        inset: '4px',
-                                        background: 'rgba(255, 255, 255, 0.08)',
-                                        borderRadius: '16px',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '18px',
                                         zIndex: -1,
                                     }}
                                     transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
