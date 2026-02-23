@@ -21,17 +21,14 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
             width: 'calc(100% - 20px)',
             maxWidth: '430px'
         }}>
-            <div className="glass-dock" style={{
+            <div className="glass-dock liquid-glass" style={{
                 display: 'flex',
                 justifyContent: 'space-around',
                 alignItems: 'center',
                 height: '72px',
                 padding: '0 8px',
                 borderRadius: '24px',
-                position: 'relative',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                background: 'rgba(20, 20, 20, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.08)'
+                position: 'relative'
             }}>
                 {tabs.map((tab) => {
                     const Icon = tab.icon;

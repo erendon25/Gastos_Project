@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, Landmark } from 'lucide-react';
 import RecentTransactions from './RecentTransactions';
+import CategoryBudget from './CategoryBudget';
 import { auth, db } from '../lib/firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 
@@ -9,6 +10,7 @@ interface DashboardProps {
   currentDate: Date;
   changeMonth: (offset: number) => void;
   onNavigate: (view: string) => void;
+  onAddFromCategory: (cat: string) => void;
 }
 
 interface Totals {
@@ -23,7 +25,7 @@ interface Totals {
   cumulativeDebtsPaid: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, changeMonth, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, changeMonth, onNavigate, onAddFromCategory }) => {
   const now = new Date();
   const [totals, setTotals] = useState<Totals>({
     income: 0,
@@ -275,7 +277,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   return (
     <div className="dashboard-container" style={{ padding: '24px 20px 150px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
+      {/* Branding & Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1px' }}>FLUX</h1>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <Settings size={20} color="#666" />
+          </button>
+          <button onClick={() => auth.signOut()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <LogOut size={20} color="#666" />
+          </button>
+        </div>
+      </div>
+
+      {/* Profile Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#262626', overflow: 'hidden' }}>
@@ -285,14 +300,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             <p style={{ fontSize: '11px', color: '#666' }}>Hola,</p>
             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{auth.currentUser?.displayName || 'Usuario'}</p>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <button onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <Settings size={20} color="#666" />
-          </button>
-          <button onClick={() => auth.signOut()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <LogOut size={20} color="#666" />
-          </button>
         </div>
       </div>
 
@@ -349,6 +356,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
           <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalExpenses.toLocaleString()}</p>
           <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Fijos: S/ {recurringExpensesMonthly.toLocaleString()}</p>
         </div>
+      </div>
+
+      {/* Category Budgets & Swipes */}
+      <div style={{ margin: '8px 0' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          Categorías & Presupuestos
+          <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#666' }}>(Desliza ↑ editar, ↓ gastar)</span>
+        </h3>
+        <CategoryBudget currentDate={currentDate} onAddExpense={onAddFromCategory} />
       </div>
 
       {/* Debt Progress Card */}

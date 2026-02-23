@@ -1,9 +1,28 @@
+import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'models/transaction.dart';
+import 'screens/login_screen.dart';
+import 'widgets/settings_sheet.dart';
+import 'widgets/add_expense_sheet.dart';
 import 'voice_service.dart';
+import 'services/firebase_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyB7gW6xeJ6E98rELYfjcKRnhLL6ZSWVUrw",
+      appId: "1:665927620976:ios:04e6c701d4a04ed5b917b5", // This should be the iOS App ID, usually needs to be created in Firebase console
+      messagingSenderId: "665927620976",
+      projectId: "gastos-110bb",
+      storageBucket: "gastos-110bb.firebasestorage.app",
+      iosBundleId: "com.example.gastos_premium", // Matches the default bundle ID
+    ),
+  );
   runApp(const GastosApp());
 }
 
@@ -18,7 +37,18 @@ class GastosApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0A0A0A),
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       ),
-      home: const DashboardScreen(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          if (snapshot.hasData) {
+            return const DashboardScreen();
+          }
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
@@ -33,8 +63,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final VoiceService _voiceService = VoiceService();
+  final FirebaseService _firebaseService = FirebaseService();
   String _lastWords = '';
   DateTime _currentDate = DateTime.now();
+  Map<String, dynamic>? _draftExpense;
 
   @override
   void initState() {
@@ -44,22 +76,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _listen() {
     if (!_voiceService.isListening) {
-      _voiceService.startListening((val) {
+      _voiceService.startListening((val) async {
         setState(() {
           _lastWords = val;
-          final command = _voiceService.parseCommand(val);
-          if (command != null) {
+        });
+        
+        final command = _voiceService.parseCommand(val);
+        if (command != null) {
+          await _firebaseService.addExpense(command);
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 backgroundColor: const Color(0xFF1E1E1E),
                 content: Text(
-                  'Gasto agregado: S/ ${command['amount']} en ${command['category']}',
+                  '✅ Guardado: S/ ${command['amount']} en ${command['category']}',
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
             );
           }
-        });
+        }
       });
     } else {
       _voiceService.stopListening();
@@ -108,9 +144,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
                     ),
                   ),
-                _buildMainBalance(),
-                const SizedBox(height: 30),
-                _buildSummaryCards(),
+                
+                StreamBuilder<List<TransactionModel>>(
+                  stream: _firebaseService.getIncomes(_currentDate),
+                  builder: (context, incomeSnap) {
+                    return StreamBuilder<List<TransactionModel>>(
+                      stream: _firebaseService.getExpenses(_currentDate),
+                      builder: (context, expenseSnap) {
+                        final incomes = incomeSnap.data ?? [];
+                        final expenses = expenseSnap.data ?? [];
+                        
+                        double totalIncome = incomes.fold(0, (sum, item) => sum + item.amount);
+                        double totalExpense = expenses.fold(0, (sum, item) => sum + item.amount);
+                        double balance = totalIncome - totalExpense;
+
+                        return Column(
+                          children: [
+                            _buildMainBalance(balance),
+                            const SizedBox(height: 30),
+                            _buildSummaryCards(totalIncome, totalExpense),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                ),
+                
                 const SizedBox(height: 24),
                 _buildStatsRow(),
                 const SizedBox(height: 32),
@@ -134,12 +193,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
             bottom: 110,
             right: 24,
             child: FloatingActionButton(
-              onPressed: _listen,
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => AddExpenseSheet(
+                    initialDraft: _draftExpense,
+                    onUpdateDraft: (draft) {
+                      setState(() {
+                        _draftExpense = draft;
+                      });
+                    },
+                  ),
+                );
+              },
               backgroundColor: Colors.white,
               elevation: 10,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Icon(
-                _voiceService.isListening ? Icons.mic : Icons.add, 
+              child: const Icon(
+                Icons.add, 
                 color: Colors.black, 
                 size: 32
               ),
@@ -164,12 +237,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('Hola, Usuario', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('Tu resumen financiero', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          children: [
+            Text('Hola, ${_firebaseService.currentUser?.displayName ?? 'Usuario'}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Tu resumen financiero', style: TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
-        CircleAvatar(radius: 20, backgroundColor: Colors.grey[900], child: const Icon(Icons.person, color: Colors.white24)),
+        InkWell(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              builder: (context) => SettingsSheet(),
+            );
+          },
+          child: CircleAvatar(
+            radius: 20, 
+            backgroundColor: Colors.grey[900], 
+            child: const Icon(Icons.person, color: Colors.white24, size: 20)
+          ),
+        ),
       ],
     );
   }
@@ -208,22 +294,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMainBalance() {
+  Widget _buildMainBalance(double balance) {
     return Column(
-      children: const [
-        Text('Saldo total disponible', style: TextStyle(color: Colors.grey, fontSize: 13)),
-        SizedBox(height: 8),
-        Text('S/ 1,250.00', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: -1)),
+      children: [
+        const Text('Saldo total disponible', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 8),
+        Text(
+          'S/ ${balance.toStringAsFixed(2)}', 
+          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: -1)
+        ),
       ],
     );
   }
 
-  Widget _buildSummaryCards() {
+  Widget _buildSummaryCards(double totalIncome, double totalExpense) {
     return Row(
       children: [
-        Expanded(child: _summaryCard('Ingresos', 'S/ 4,500.00', const Color(0xFF4ADE80))),
+        Expanded(child: _summaryCard('Ingresos', 'S/ ${totalIncome.toStringAsFixed(0)}', const Color(0xFF4ADE80))),
         const SizedBox(width: 12),
-        Expanded(child: _summaryCard('Egresos', 'S/ 3,250.00', const Color(0xFFF87171))),
+        Expanded(child: _summaryCard('Egresos', 'S/ ${totalExpense.toStringAsFixed(0)}', const Color(0xFFF87171))),
       ],
     );
   }
@@ -274,13 +363,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRecentTransactions() {
-    return Column(
-      children: const [
-        TransactionItem(title: 'Supermercado', date: '22 Feb, 2026', amount: '- S/ 120.50', category: 'Alimentación'),
-        SizedBox(height: 12),
-        TransactionItem(title: 'Netflix', date: '20 Feb, 2026', amount: '- S/ 45.00', category: 'Entretenimiento'),
-      ],
+    return StreamBuilder<List<TransactionModel>>(
+      stream: _firebaseService.getExpenses(_currentDate),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final transactions = snapshot.data ?? [];
+        if (transactions.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('No hay gastos este mes', style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: transactions.length > 5 ? 5 : transactions.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final t = transactions[index];
+            return TransactionItem(
+              title: t.description,
+              date: '${t.date.day} ${_getMonthName(t.date.month)}',
+              amount: '- S/ ${t.amount.toStringAsFixed(2)}',
+              category: t.category,
+              emoji: t.categoryEmoji,
+            );
+          },
+        );
+      },
     );
+  }
+
+  String _getMonthName(int month) {
+    const names = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return names[month - 1];
   }
 
   Widget _buildChart() {
@@ -307,70 +427,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDetailedDebtProgress() {
-    const double totalDebt = 7000;
-    const double monthlyQuota = 350;
-    const int paidQuotas = 2;
-    const double paidAmount = monthlyQuota * paidQuotas;
-    const double pendingAmount = totalDebt - paidAmount;
-    const double progress = paidAmount / totalDebt;
+    return StreamBuilder<List<DebtModel>>(
+      stream: _firebaseService.getDebts(),
+      builder: (context, snapshot) {
+        final debts = snapshot.data ?? [];
+        if (debts.isEmpty) {
+          return const Center(
+            child: Text('No hay deudas registradas', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          );
+        }
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A), 
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        final debt = debts.first; // Show the first one for now
+        final totalDebt = debt.totalLoanAmount ?? 0;
+        final paidAmount = totalDebt - (debt.remainingAmount ?? 0);
+        final progress = totalDebt > 0 ? (paidAmount / totalDebt) : 0.0;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A), 
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Préstamo Banco', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('Inició: 3 de Enero, 2026', style: TextStyle(color: Colors.grey, fontSize: 11)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(debt.description, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Vence: ${debt.dueDate?.day} ${_getMonthName(debt.dueDate?.month ?? 1)}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                    child: Text(debt.paid ? 'Pagado' : 'Pendiente', style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: const Text('Pendiente', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${(progress * 100).toStringAsFixed(1)}% pagado', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('Faltan: S/ ${debt.remainingAmount?.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: progress, 
+                backgroundColor: Colors.grey[800], 
+                color: Colors.white, 
+                minHeight: 8, 
+                borderRadius: BorderRadius.circular(4)
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _debtSmallInfo('Cuota Actual', 'S/ ${debt.amount.toStringAsFixed(2)}'),
+                  ),
+                  Container(width: 1, height: 24, color: Colors.white10),
+                  Expanded(
+                    child: _debtSmallInfo('Monto Total', 'S/ ${totalDebt.toStringAsFixed(2)}'),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('${(progress * 100).toStringAsFixed(1)}% pagado', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              Text('Faltan: S/ $pendingAmount', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress, 
-            backgroundColor: Colors.grey[800], 
-            color: Colors.white, 
-            minHeight: 8, 
-            borderRadius: BorderRadius.circular(4)
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _debtSmallInfo('Cuota Mensual', 'S/ $monthlyQuota'),
-              ),
-              Container(width: 1, height: 24, color: Colors.white10),
-              Expanded(
-                child: _debtSmallInfo('Monto Total', 'S/ $totalDebt'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 
@@ -390,31 +520,63 @@ class TransactionItem extends StatelessWidget {
   final String date;
   final String amount;
   final String category;
-  const TransactionItem({super.key, required this.title, required this.date, required this.amount, required this.category});
+  final String? emoji;
+
+  const TransactionItem({
+    super.key, 
+    required this.title, 
+    required this.date, 
+    required this.amount, 
+    required this.category,
+    this.emoji,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white05)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.shopping_bag_outlined, color: Colors.white60, size: 20),
-              ),
-              const SizedBox(width: 14),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Text(category, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-              ]),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05), 
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      emoji ?? '📦', 
+                      style: const TextStyle(fontSize: 20)
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Text(
+                        title, 
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(category, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -437,20 +599,38 @@ class CustomDock extends StatelessWidget {
     return Container(
       height: 76, 
       decoration: BoxDecoration(
-        color: const Color(0xF01A1A1A), 
+        color: Colors.white.withOpacity(0.04), 
         borderRadius: BorderRadius.circular(28), 
         border: Border.all(color: Colors.white.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, offset: const Offset(0, 10))],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(0, Icons.home_filled, 'Inicio'),
-          _navItem(1, Icons.account_balance_wallet_rounded, 'Gastos'),
-          _navItem(2, Icons.repeat_rounded, 'Fijos'),
-          _navItem(3, Icons.landmark_rounded, 'Deudas'),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.05),
+                  Colors.white.withOpacity(0.0),
+                ],
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(0, Icons.home_filled, 'Inicio'),
+                _navItem(1, Icons.account_balance_wallet_rounded, 'Gastos'),
+                _navItem(2, Icons.repeat_rounded, 'Fijos'),
+                _navItem(3, Icons.landmark_rounded, 'Deudas'),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

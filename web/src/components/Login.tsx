@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Apple, Wallet, Key, UserPlus } from 'lucide-react';
+import { Apple, Zap, Key, User } from 'lucide-react';
 import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, googleProvider, appleProvider } from '../lib/firebase';
 
@@ -96,11 +96,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     margin: '0 auto 20px auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                 }}>
-                    <Wallet size={40} color="#000" />
+                    <Zap size={40} color="#000" />
                 </div>
-                <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-1px' }}>GastosPremium</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '8px' }}>
-                    {isRegistering ? 'Crea tu cuenta gratuita' : 'Tu control financiero inteligente'}
+                <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-1px' }}>FLUX</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                    {isRegistering ? 'Únete a la élite financiera' : 'Tu flujo de dinero, dominado.'}
                 </p>
             </div>
 
@@ -131,7 +131,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     justifyContent: 'center',
                     gap: '8px'
                 }}>
-                    {isRegistering ? <UserPlus size={18} /> : <Key size={18} />}
+                    {isRegistering ? <User size={18} /> : <Key size={18} />}
                     {loading ? 'Procesando...' : (isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión')}
                 </button>
             </form>

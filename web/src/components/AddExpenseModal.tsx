@@ -10,6 +10,9 @@ interface AddExpenseModalProps {
     onClose: () => void;
     editItem?: any;
     editType?: 'expense' | 'income' | 'recurring' | 'debt';
+    presetCategory?: string | null;
+    draftData?: any;
+    onUpdateDraft?: (data: any) => void;
 }
 
 // Helper to avoid timezone shifts when parsing YYYY-MM-DD
@@ -26,40 +29,44 @@ const formatLocalDate = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType }) => {
-    const [amount, setAmount] = useState(editItem ? editItem.amount.toString() : '');
-    const [description, setDescription] = useState(editItem ? editItem.description : '');
+const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType, presetCategory, draftData, onUpdateDraft }) => {
+    const [amount, setAmount] = useState(editItem ? editItem.amount.toString() : (draftData?.amount || ''));
+    const [description, setDescription] = useState(editItem ? editItem.description : (draftData?.description || ''));
     const [type, setType] = useState<'expense' | 'income' | 'debt'>(() => {
         if (editItem) {
             if (editItem.collection?.includes('ingresos') || editItem.type === 'income') return 'income';
             if (editItem.collection === 'prestamos' || editItem.type === 'debt') return 'debt';
             return 'expense';
         }
+        if (draftData?.type) return draftData.type;
         return editType === 'income' ? 'income' : (editType === 'debt' ? 'debt' : 'expense');
     });
     const [isRecurring, setIsRecurring] = useState(() => {
         if (editItem) return editItem.collection?.includes('recurrentes') || editType === 'recurring' || !!editItem.recurringDay;
+        if (draftData?.isRecurring !== undefined) return draftData.isRecurring;
         return editType === 'recurring';
     });
     const [category, setCategory] = useState(() => {
         if (editItem) return editItem.category;
+        if (presetCategory) return presetCategory;
+        if (draftData?.category) return draftData.category;
         if (editType === 'income' || type === 'income') return 'Ingresos';
         return DEFAULT_CATEGORIES[0].name;
     });
-    const [autoDebit, setAutoDebit] = useState(editItem?.autoDebit ?? true);
+    const [autoDebit, setAutoDebit] = useState(editItem?.autoDebit ?? (draftData?.autoDebit ?? true));
 
-    const [totalLoanAmount, setTotalLoanAmount] = useState(editItem?.totalLoanAmount?.toString() || '');
-    const [paidQuotas, setPaidQuotas] = useState(editItem?.paidQuotas?.toString() || '0');
-    const [remainingAmount, setRemainingAmount] = useState(editItem?.remainingAmount?.toString() || '');
+    const [totalLoanAmount, setTotalLoanAmount] = useState(editItem?.totalLoanAmount?.toString() || (draftData?.totalLoanAmount || ''));
+    const [paidQuotas, setPaidQuotas] = useState(editItem?.paidQuotas?.toString() || (draftData?.paidQuotas || '0'));
+    const [remainingAmount, setRemainingAmount] = useState(editItem?.remainingAmount?.toString() || (draftData?.remainingAmount || ''));
 
     const [startDate, setStartDate] = useState(
-        editItem?.startDate ? formatLocalDate(editItem.startDate.toDate()) : formatLocalDate(new Date())
+        editItem?.startDate ? formatLocalDate(editItem.startDate.toDate()) : (draftData?.startDate || formatLocalDate(new Date()))
     );
     const [dueDate, setDueDate] = useState(
-        editItem?.dueDate ? formatLocalDate(editItem.dueDate.toDate()) : formatLocalDate(new Date())
+        editItem?.dueDate ? formatLocalDate(editItem.dueDate.toDate()) : (draftData?.dueDate || formatLocalDate(new Date()))
     );
-    const [recurringDay, setRecurringDay] = useState(editItem?.recurringDay || new Date().getDate().toString());
-    const [debtSubtype, setDebtSubtype] = useState<'loan' | 'insurance'>(editItem?.debtSubtype || 'loan');
+    const [recurringDay, setRecurringDay] = useState(editItem?.recurringDay?.toString() || (draftData?.recurringDay || new Date().getDate().toString()));
+    const [debtSubtype, setDebtSubtype] = useState<'loan' | 'insurance'>(editItem?.debtSubtype || (draftData?.debtSubtype || 'loan'));
 
     const [allCategories, setAllCategories] = useState<any[]>(DEFAULT_CATEGORIES);
     const [showRecurringChoice, setShowRecurringChoice] = useState(false);
@@ -79,6 +86,16 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         });
         return () => unsub();
     }, []);
+
+    useEffect(() => {
+        if (onUpdateDraft && !editItem) {
+            onUpdateDraft({
+                amount, description, type, isRecurring, category, autoDebit,
+                totalLoanAmount, paidQuotas, remainingAmount, startDate, dueDate,
+                recurringDay, debtSubtype
+            });
+        }
+    }, [amount, description, type, isRecurring, category, autoDebit, totalLoanAmount, paidQuotas, remainingAmount, startDate, dueDate, recurringDay, debtSubtype]);
 
     const handleVoiceResult = (text: string) => {
         // Advanced Amount Detection (handles decimals and common separators)
@@ -120,6 +137,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         if (!amount || !auth.currentUser) return;
 
         onClose();
+        if (onUpdateDraft) onUpdateDraft(null);
 
         // Encontrar el emoji de la categoría seleccionada
         const selectedCat = allCategories.find(c => c.name === category);
@@ -263,12 +281,38 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 3000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
             <motion.div
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                    if (info.offset.y > 150) onClose();
+                }}
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                style={{ width: '100%', maxWidth: '450px', background: '#1c1c1e', borderTopLeftRadius: '32px', borderTopRightRadius: '32px', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '95vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                style={{
+                    width: '100%',
+                    maxWidth: '450px',
+                    background: '#1c1c1e',
+                    borderTopLeftRadius: '32px',
+                    borderTopRightRadius: '32px',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                    maxHeight: '92vh',
+                    position: 'relative'
+                }}>
+
+                {/* Fixed Header with Close Button */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingBottom: '10px',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)'
+                }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 'bold' }}>{editItem ? 'Editar Registro' : 'Nuevo Registro'}</h2>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {editItem && (
@@ -276,158 +320,162 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                                 <Trash2 size={18} />
                             </button>
                         )}
-                        <button onClick={onClose} style={{ background: '#333', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%' }}>
-                            <X size={18} />
+                        <button onClick={onClose} style={{ background: '#333', border: 'none', color: '#fff', padding: '10px', borderRadius: '50%', cursor: 'pointer' }}>
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: '#000', padding: '6px', borderRadius: '20px', gap: '6px' }}>
-                    <button type="button" onClick={() => { setType('expense'); setIsRecurring(false); }}
-                        style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'expense' && !isRecurring ? '#fff' : 'transparent', color: type === 'expense' && !isRecurring ? '#000' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Gasto</button>
+                {/* Scrollable Content */}
+                <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '20px' }}>
 
-                    <button type="button" onClick={() => { setType('expense'); setIsRecurring(true); }}
-                        style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: isRecurring && type === 'expense' ? '#818cf8' : 'transparent', color: isRecurring && type === 'expense' ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>G. Fijo</button>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: '#000', padding: '6px', borderRadius: '20px', gap: '6px' }}>
+                        <button type="button" onClick={() => { setType('expense'); setIsRecurring(false); }}
+                            style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'expense' && !isRecurring ? '#fff' : 'transparent', color: type === 'expense' && !isRecurring ? '#000' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Gasto</button>
 
-                    <button type="button" onClick={() => { setType('debt'); setIsRecurring(false); }}
-                        style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'debt' ? '#ef4444' : 'transparent', color: type === 'debt' ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Deuda</button>
+                        <button type="button" onClick={() => { setType('expense'); setIsRecurring(true); }}
+                            style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: isRecurring && type === 'expense' ? '#818cf8' : 'transparent', color: isRecurring && type === 'expense' ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>G. Fijo</button>
 
-                    <button type="button" onClick={() => { setType('income'); setIsRecurring(false); setCategory('Ingresos'); }}
-                        style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'income' && !isRecurring ? '#4ade80' : 'transparent', color: type === 'income' && !isRecurring ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Ingreso</button>
+                        <button type="button" onClick={() => { setType('debt'); setIsRecurring(false); }}
+                            style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'debt' ? '#ef4444' : 'transparent', color: type === 'debt' ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Deuda</button>
 
-                    <button type="button" onClick={() => { setType('income'); setIsRecurring(true); setCategory('Ingresos'); }}
-                        style={{ padding: '12px 4px', borderRadius: '14px', background: type === 'income' && isRecurring ? '#22c55e' : 'transparent', color: type === 'income' && isRecurring ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s', border: type === 'income' && isRecurring ? '2px solid #fff' : 'none' }}>I. Fijo</button>
-                </div>
+                        <button type="button" onClick={() => { setType('income'); setIsRecurring(false); setCategory('Ingresos'); }}
+                            style={{ padding: '12px 4px', borderRadius: '14px', border: 'none', background: type === 'income' && !isRecurring ? '#4ade80' : 'transparent', color: type === 'income' && !isRecurring ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s' }}>Ingreso</button>
 
-                <form onSubmit={onFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ textAlign: 'center' }}>
-                        <input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" style={{ background: 'none', border: 'none', color: '#fff', fontSize: '48px', textAlign: 'center', width: '100%', outline: 'none', fontWeight: '800' }} required autoFocus />
+                        <button type="button" onClick={() => { setType('income'); setIsRecurring(true); setCategory('Ingresos'); }}
+                            style={{ padding: '12px 4px', borderRadius: '14px', background: type === 'income' && isRecurring ? '#22c55e' : 'transparent', color: type === 'income' && isRecurring ? '#fff' : '#666', fontWeight: 'bold', fontSize: '11px', transition: '0.2s', border: type === 'income' && isRecurring ? '2px solid #fff' : 'none' }}>I. Fijo</button>
                     </div>
 
-                    <input
-                        type="text"
-                        placeholder={type === 'income' ? "¿De qué es este ingreso?" : "¿En qué gastaste?"}
-                        className="input-field"
-                        value={description}
-                        onChange={(e) => {
-                            setDescription(e.target.value);
-                            if (type !== 'income') {
-                                const detected = getCategoryByText(e.target.value);
-                                setCategory(detected.name);
-                            }
-                        }} required
-                    />
-
-                    {type !== 'income' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                            {allCategories.map((cat: any) => {
-                                const isSelected = category === cat.name;
-                                const color = cat.color || '#fff';
-                                const Icon = cat.icon;
-
-                                return (
-                                    <button key={cat.id || cat.name} type="button" onClick={() => setCategory(cat.name)}
-                                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '10px 4px', borderRadius: '14px', border: '1px solid', borderColor: isSelected ? color : '#2c2c2e', background: isSelected ? `${color}15` : '#1c1c1e', cursor: 'pointer', transition: '0.2s' }}>
-                                        {cat.emoji ? (
-                                            <span style={{ fontSize: '18px' }}>{cat.emoji}</span>
-                                        ) : (
-                                            <Icon size={18} color={isSelected ? color : '#555'} />
-                                        )}
-                                        <span style={{ fontSize: '9px', color: isSelected ? '#fff' : '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{cat.name}</span>
-                                    </button>
-                                )
-                            })}
+                    <form onSubmit={onFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" style={{ background: 'none', border: 'none', color: '#fff', fontSize: '48px', textAlign: 'center', width: '100%', outline: 'none', fontWeight: '800' }} required autoFocus />
                         </div>
-                    )}
-                    {type === 'debt' && (
-                        <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ display: 'flex', background: '#1c1c1e', padding: '4px', borderRadius: '12px', gap: '4px' }}>
-                                <button type="button" onClick={() => setDebtSubtype('loan')} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: debtSubtype === 'loan' ? '#ef4444' : 'transparent', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Préstamo</button>
-                                <button type="button" onClick={() => setDebtSubtype('insurance')} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: debtSubtype === 'insurance' ? '#ef4444' : 'transparent', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Seguro</button>
-                            </div>
 
-                            {debtSubtype === 'loan' && (
+                        <input
+                            type="text"
+                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : "¿En qué gastaste?"}
+                            className="input-field"
+                            value={description}
+                            onChange={(e) => {
+                                setDescription(e.target.value);
+                                if (type !== 'income') {
+                                    const detected = getCategoryByText(e.target.value);
+                                    setCategory(detected.name);
+                                }
+                            }} required
+                        />
+
+                        {type !== 'income' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                {allCategories.map((cat: any) => {
+                                    const isSelected = category === cat.name;
+                                    const color = cat.color || '#fff';
+                                    const Icon = cat.icon;
+
+                                    return (
+                                        <button key={cat.id || cat.name} type="button" onClick={() => setCategory(cat.name)}
+                                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '10px 4px', borderRadius: '14px', border: '1px solid', borderColor: isSelected ? color : '#2c2c2e', background: isSelected ? `${color}15` : '#1c1c1e', cursor: 'pointer', transition: '0.2s' }}>
+                                            {cat.emoji ? (
+                                                <span style={{ fontSize: '18px' }}>{cat.emoji}</span>
+                                            ) : (
+                                                <Icon size={18} color={isSelected ? color : '#555'} />
+                                            )}
+                                            <span style={{ fontSize: '9px', color: isSelected ? '#fff' : '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{cat.name}</span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        {type === 'debt' && (
+                            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', background: '#1c1c1e', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+                                    <button type="button" onClick={() => setDebtSubtype('loan')} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: debtSubtype === 'loan' ? '#ef4444' : 'transparent', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Préstamo</button>
+                                    <button type="button" onClick={() => setDebtSubtype('insurance')} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: debtSubtype === 'insurance' ? '#ef4444' : 'transparent', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Seguro</button>
+                                </div>
+
+                                {debtSubtype === 'loan' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Monto Préstamo Total</label>
+                                            <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="S/ 0.00" />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Saldo Restante</label>
+                                            <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder="S/ 0.00" />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
-                                        <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Monto Préstamo Total</label>
-                                        <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="S/ 0.00" />
+                                        <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Inicio</label>
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Saldo Restante</label>
-                                        <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder="S/ 0.00" />
+                                        <label style={{ fontSize: '10px', color: '#ef4444', marginBottom: '4px', display: 'block' }}>{debtSubtype === 'insurance' ? 'Fin Vigencia' : 'Prox. Pago'}</label>
+                                        <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} />
                                     </div>
                                 </div>
-                            )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div>
-                                    <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Inicio</label>
-                                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '10px', color: '#ef4444', marginBottom: '4px', display: 'block' }}>{debtSubtype === 'insurance' ? 'Fin Vigencia' : 'Prox. Pago'}</label>
-                                    <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} />
-                                </div>
+                                {debtSubtype === 'loan' && (
+                                    <div>
+                                        <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Cuotas Pagadas</label>
+                                        <input type="number" value={paidQuotas} onChange={(e) => setPaidQuotas(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="0" />
+                                    </div>
+                                )}
                             </div>
+                        )}
 
-                            {debtSubtype === 'loan' && (
-                                <div>
-                                    <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Cuotas Pagadas</label>
-                                    <input type="number" value={paidQuotas} onChange={(e) => setPaidQuotas(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="0" />
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        {(isRecurring || type === 'debt') && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {isRecurring && type !== 'debt' && (
+                                    <div style={{ background: '#1c1c1e', padding: '16px', borderRadius: '16px', border: '1px solid #2c2c2e' }}>
+                                        <label style={{ fontSize: '12px', color: '#666', marginBottom: '8px', display: 'block' }}>Día del mes para el registro</label>
+                                        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                            {[...Array(31)].map((_, i) => (
+                                                <button
+                                                    key={i + 1}
+                                                    type="button"
+                                                    onClick={() => setRecurringDay((i + 1).toString())}
+                                                    style={{
+                                                        minWidth: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '10px',
+                                                        border: '1px solid',
+                                                        borderColor: recurringDay === (i + 1).toString() ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e',
+                                                        background: recurringDay === (i + 1).toString() ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : 'transparent',
+                                                        color: recurringDay === (i + 1).toString() ? '#fff' : '#666',
+                                                        fontSize: '14px',
+                                                        fontWeight: 'bold',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-                    {(isRecurring || type === 'debt') && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {isRecurring && type !== 'debt' && (
-                                <div style={{ background: '#1c1c1e', padding: '16px', borderRadius: '16px', border: '1px solid #2c2c2e' }}>
-                                    <label style={{ fontSize: '12px', color: '#666', marginBottom: '8px', display: 'block' }}>Día del mes para el registro</label>
-                                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
-                                        {[...Array(31)].map((_, i) => (
-                                            <button
-                                                key={i + 1}
-                                                type="button"
-                                                onClick={() => setRecurringDay((i + 1).toString())}
-                                                style={{
-                                                    minWidth: '40px',
-                                                    height: '40px',
-                                                    borderRadius: '10px',
-                                                    border: '1px solid',
-                                                    borderColor: recurringDay === (i + 1).toString() ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e',
-                                                    background: recurringDay === (i + 1).toString() ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : 'transparent',
-                                                    color: recurringDay === (i + 1).toString() ? '#fff' : '#666',
-                                                    fontSize: '14px',
-                                                    fontWeight: 'bold',
-                                                    flexShrink: 0
-                                                }}
-                                            >
-                                                {i + 1}
-                                            </button>
-                                        ))}
+                                <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
+                                    {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
+                                        <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
                                     </div>
                                 </div>
-                            )}
-
-                            <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
-                                {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
-                                <div style={{ flex: 1 }}>
-                                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
-                                    <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
-                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                        {!editItem && <SpeechButton onResult={handleVoiceResult} />}
-                        <button type="submit" className="btn-primary"
-                            style={{ flex: 1, padding: '16px', background: type === 'income' ? '#4ade80' : (type === 'debt' ? '#ef4444' : (isRecurring ? '#818cf8' : '#fff')), color: type === 'income' || isRecurring || type === 'debt' ? '#fff' : '#000' }}>
-                            {editItem ? 'Guardar Cambios' : 'Confirmar Registro'}
-                        </button>
-                    </div>
-                </form>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                            {!editItem && <SpeechButton onResult={handleVoiceResult} />}
+                            <button type="submit" className="btn-primary"
+                                style={{ flex: 1, padding: '16px', background: type === 'income' ? '#4ade80' : (type === 'debt' ? '#ef4444' : (isRecurring ? '#818cf8' : '#fff')), color: type === 'income' || isRecurring || type === 'debt' ? '#fff' : '#000' }}>
+                                {editItem ? 'Guardar Cambios' : 'Confirmar Registro'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </motion.div>
         </div>
     );

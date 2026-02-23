@@ -4,12 +4,23 @@ import { collection, onSnapshot, addDoc, deleteDoc, doc, query } from 'firebase/
 import { getEmojiForCategory } from '../lib/categories';
 import { Plus, Trash2, Tag } from 'lucide-react';
 
-const CategorySettings: React.FC = () => {
+interface CategorySettingsProps {
+    draftData?: any;
+    onUpdateDraft?: (data: any) => void;
+}
+
+const CategorySettings: React.FC<CategorySettingsProps> = ({ draftData, onUpdateDraft }) => {
     const [userCategories, setUserCategories] = useState<any[]>([]);
-    const [newCatName, setNewCatName] = useState('');
-    const [newCatEmoji, setNewCatEmoji] = useState('📦');
+    const [newCatName, setNewCatName] = useState(draftData?.newCatName || '');
+    const [newCatEmoji, setNewCatEmoji] = useState(draftData?.newCatEmoji || '📦');
     const [loading, setLoading] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+    useEffect(() => {
+        if (onUpdateDraft) {
+            onUpdateDraft({ newCatName, newCatEmoji });
+        }
+    }, [newCatName, newCatEmoji, onUpdateDraft]);
 
     const QUICK_EMOJIS = ['💰', '🍱', '🚕', '🏥', '🎮', '🎓', '💪', '🛒', '👕', '💅', '🎁', '✈️', '🐶', '💼', '📱', '🛠️', '🎬', '👗', '💇', '🍕', '🍻', '🍰', '⚽', '🎨', '🚀', '💧', '⚡', '📶', '🔥', '🧹', '☕', '🎟️', '🏠', '🍎', '🍫', '🥩'];
 

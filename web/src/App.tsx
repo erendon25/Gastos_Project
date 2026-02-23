@@ -6,6 +6,7 @@ import Dock from './components/Dock'
 import Login from './components/Login'
 import TransactionsList from './components/TransactionsList'
 import CategorySettings from './components/CategorySettings'
+import PasswordSettings from './components/PasswordSettings'
 import AddExpenseModal from './components/AddExpenseModal'
 import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,8 +56,12 @@ function App() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'categories' | 'profile'>('categories')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [presetCategory, setPresetCategory] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [draftExpense, setDraftExpense] = useState<any>(null)
+  const [draftSettings, setDraftSettings] = useState<any>(null)
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
@@ -83,7 +88,18 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Dashboard currentDate={currentDate} changeMonth={changeMonth} onOpenSettings={() => setShowSettings(true)} onNavigate={setActiveTab} />;
+        return (
+          <Dashboard
+            currentDate={currentDate}
+            changeMonth={changeMonth}
+            onOpenSettings={() => setShowSettings(true)}
+            onNavigate={setActiveTab}
+            onAddFromCategory={(cat) => {
+              setPresetCategory(cat);
+              setShowAddModal(true);
+            }}
+          />
+        );
       case 'expenses':
         return (
           <div style={{ padding: '24px 0' }}>
@@ -155,6 +171,12 @@ function App() {
       <AnimatePresence>
         {showSettings && (
           <motion.div
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 150) setShowSettings(false);
+            }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -171,13 +193,35 @@ function App() {
               padding: '24px 20px',
               overflowY: 'auto'
             }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
               <button onClick={() => setShowSettings(false)} style={{ background: '#222', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
-            <CategorySettings />
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: '#111', padding: '4px', borderRadius: '14px' }}>
+              <button
+                onClick={() => setSettingsTab('categories')}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                  background: settingsTab === 'categories' ? '#222' : 'transparent',
+                  color: settingsTab === 'categories' ? '#fff' : '#666',
+                  transition: 'all 0.2s'
+                }}>Categorías</button>
+              <button
+                onClick={() => setSettingsTab('profile')}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                  background: settingsTab === 'profile' ? '#222' : 'transparent',
+                  color: settingsTab === 'profile' ? '#fff' : '#666'
+                }}>Perfil & Seguridad</button>
+            </div>
+
+            {settingsTab === 'categories' ?
+              <CategorySettings draftData={draftSettings} onUpdateDraft={setDraftSettings} /> :
+              <PasswordSettings draftData={draftSettings} onUpdateDraft={setDraftSettings} />
+            }
           </motion.div>
         )}
       </AnimatePresence>
@@ -243,12 +287,18 @@ function App() {
       <AnimatePresence>
         {showAddModal && (
           <AddExpenseModal
-            onClose={() => setShowAddModal(false)}
+            onClose={() => {
+              setShowAddModal(false);
+              setPresetCategory(null);
+            }}
+            presetCategory={presetCategory}
             editType={
               activeTab === 'income' ? 'income' :
                 activeTab === 'recurring' ? 'recurring' :
                   activeTab === 'debts' ? 'debt' : 'expense'
             }
+            draftData={draftExpense}
+            onUpdateDraft={setDraftExpense}
           />
         )}
       </AnimatePresence>
