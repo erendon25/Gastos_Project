@@ -61,9 +61,8 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                                     className="liquid-glass-inner"
                                     style={{
                                         position: 'absolute',
-                                        width: '100%',
-                                        height: '100%',
-                                        borderRadius: '18px',
+                                        inset: '4px',
+                                        borderRadius: '22px',
                                         zIndex: -1,
                                     }}
                                     transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
