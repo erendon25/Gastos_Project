@@ -62,10 +62,15 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                                     style={{
                                         position: 'absolute',
                                         inset: '4px',
-                                        borderRadius: '22px',
+                                        borderRadius: '18px',
                                         zIndex: -1,
                                     }}
-                                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 350,
+                                        damping: 35,
+                                        mass: 0.8
+                                    }}
                                 />
                             )}
                             <motion.div
