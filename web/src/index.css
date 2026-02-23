@@ -71,3 +71,16 @@ body {
 .input-field::placeholder {
   color: var(--text-secondary);
 }
+
+/* Ocultar flechas en campos de número (Chrome, Safari, Edge, Opera) */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ocultar flechas en campos de número (Firefox) */
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

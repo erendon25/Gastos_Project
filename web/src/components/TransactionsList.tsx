@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc, where, Timestamp } from 'firebase/firestore';
 import { CATEGORIES } from '../lib/categories';
-import { CheckCircle, Circle, Calendar, AlertCircle, Info, Edit2, Trash2 } from 'lucide-react';
+import { CheckCircle, Circle, Calendar, Info, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import AddExpenseModal from './AddExpenseModal';
 
 interface TransactionsListProps {
     type?: 'expense' | 'income' | 'recurring' | 'debt';
+    currentDate: Date;
 }
 
-const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any; type: string; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void }) => {
+const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }: { item: any; type: string; currentDate: Date; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void }) => {
     const x = useMotionValue(0);
 
     // Transform background colors and icons based on drag direction
@@ -23,11 +24,19 @@ const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any
     const opacityLeft = useTransform(x, [50, 100], [0, 1]);
     const opacityRight = useTransform(x, [-100, -50], [1, 0]);
 
-    const categoryData = CATEGORIES.find(c => c.name === item.category) || CATEGORIES[CATEGORIES.length - 1];
-    const Icon = categoryData.icon;
+    const isIncome = type === 'income' || item.collection?.includes('ingresos') || item.type === 'income';
+    const systemIncomeCat = CATEGORIES.find(c => c.id === 'ingresos');
+    const categoryData = CATEGORIES.find(c => c.name === item.category) || (isIncome ? systemIncomeCat : CATEGORIES[0]);
+    const Icon = categoryData?.icon || (isIncome ? TrendingUp : CATEGORIES[0].icon);
     const now = new Date();
     const dueDate = item.dueDate?.toDate();
     const isPastDue = type === 'debt' && !item.paid && dueDate && dueDate < now;
+
+    // Monthly status for recurring items
+    const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    const isPaid = (type === 'recurring' || item.collection?.includes('recurrentes'))
+        ? (item.autoDebit || (item.paidMonths && item.paidMonths.includes(monthKey)))
+        : item.paid;
 
     const handleDragEnd = (_: any, info: any) => {
         if (info.offset.x > 100) {
@@ -60,16 +69,15 @@ const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.7}
                 onDragEnd={handleDragEnd}
-                style={{ x }}
                 className="premium-card"
                 onClick={() => onEdit(item)}
                 style={{
                     x,
                     margin: 0,
                     padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
-                    background: item.paid === false ? (isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.02)') : '#161616',
+                    background: isPaid === false ? (isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.02)') : '#161616',
                     border: '1px solid',
-                    borderColor: item.paid === false ? (isPastDue ? '#ef4444' : 'rgba(255, 255, 255, 0.05)') : '#222',
+                    borderColor: isPaid === false ? (isPastDue ? '#ef4444' : 'rgba(255, 255, 255, 0.05)') : '#222',
                     cursor: 'pointer',
                     position: 'relative',
                     touchAction: 'none'
@@ -77,16 +85,24 @@ const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        {(type === 'recurring' || type === 'debt') ? (
+                        {(type === 'recurring' || type === 'debt' || item.collection?.includes('recurrentes')) ? (
                             <div onClick={(e) => togglePaid(e, item)} style={{ cursor: 'pointer' }}>
-                                {item.paid ? <CheckCircle size={24} color={type === 'debt' ? '#ef4444' : '#818cf8'} /> : <Circle size={24} color="#333" />}
+                                {isPaid ? (
+                                    <CheckCircle size={24} color={isIncome ? '#4ade80' : (type === 'debt' ? '#ef4444' : '#818cf8')} />
+                                ) : (
+                                    <Circle size={24} color="#333" />
+                                )}
                             </div>
                         ) : (
                             <div style={{
-                                width: '44px', height: '44px', borderRadius: '14px', background: `${categoryData.color}20`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                width: '44px', height: '44px', borderRadius: '14px', background: `${categoryData?.color || '#333'}20`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
                             }}>
-                                <Icon size={20} color={categoryData.color} />
+                                {item.categoryEmoji ? (
+                                    <span>{item.categoryEmoji}</span>
+                                ) : (
+                                    isIncome ? <TrendingUp size={20} color="#4ade80" /> : <Icon size={20} color={categoryData?.color || '#333'} />
+                                )}
                             </div>
                         )}
 
@@ -101,9 +117,9 @@ const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any
                     <div style={{ textAlign: 'right' }}>
                         <p style={{
                             fontSize: '16px', fontWeight: '900',
-                            color: item.paid === false ? (isPastDue ? '#ef4444' : '#666') : (type === 'income' ? 'var(--income-color)' : '#fff')
+                            color: isPaid === false ? (isPastDue ? '#ef4444' : '#666') : (isIncome ? 'var(--income-color)' : '#fff')
                         }}>
-                            {type === 'income' ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
+                            {isIncome ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
                         </p>
                     </div>
                 </div>
@@ -135,7 +151,7 @@ const SwipeableItem = ({ item, type, onEdit, onDelete, togglePaid }: { item: any
     );
 };
 
-const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense' }) => {
+const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', currentDate }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -144,41 +160,120 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense' })
         if (!auth.currentUser) return;
         setLoading(true);
 
-        let collectionName = 'expenses';
-        if (type === 'income') collectionName = 'income';
-        if (type === 'recurring') collectionName = 'recurring_expenses';
-        if (type === 'debt') collectionName = 'debts';
+        const uid = auth.currentUser.uid;
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+        const startTimestamp = Timestamp.fromDate(startOfMonth);
+        const endTimestamp = Timestamp.fromDate(endOfMonth);
 
-        const q = query(
-            collection(db, 'users', auth.currentUser.uid, collectionName),
-            orderBy('date', 'desc'),
-            limit(20)
-        );
+        let primaryCollection = 'gastos';
+        let secondaryCollection: string | null = null;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const docs = snapshot.docs.map(doc => ({
+        if (type === 'income') {
+            primaryCollection = 'ingresos';
+            secondaryCollection = 'ingresos_recurrentes';
+        } else if (type === 'recurring') {
+            primaryCollection = 'gastos_recurrentes';
+        } else if (type === 'debt') {
+            primaryCollection = 'prestamos';
+        }
+
+        let primaryDocs: any[] = [];
+        let secondaryDocs: any[] = [];
+
+        const updateState = () => {
+            let combined = [...primaryDocs, ...secondaryDocs];
+
+            // Filter secondary docs (recurring/debts) if they are outside the selected month scope
+            combined = combined.filter((d: any) => {
+                if (d._source === 'recurring' || d._source === 'debt') {
+                    if (d._source === 'debt') {
+                        if (!d.startDate || !d.dueDate) return true;
+                        return d.startDate.toDate() <= endOfMonth && d.dueDate.toDate() >= startOfMonth;
+                    } else {
+                        // Recurring check: showed if created on or before this month
+                        return !d.date || d.date.toDate() <= endOfMonth;
+                    }
+                }
+                return true; // Regular items are already filtered by query
+            });
+
+            setTransactions(combined.sort((a, b) => {
+                const dateA = a.date?.seconds || 0;
+                const dateB = b.date?.seconds || 0;
+                return dateB - dateA;
+            }));
+            setLoading(false);
+        };
+
+        // Primary Listener
+        let qPrimary;
+        if (type === 'recurring' || type === 'debt') {
+            qPrimary = query(collection(db, 'users', uid, primaryCollection), orderBy('date', 'desc'), limit(50));
+        } else {
+            qPrimary = query(
+                collection(db, 'users', uid, primaryCollection),
+                where('date', '>=', startTimestamp),
+                where('date', '<=', endTimestamp),
+                orderBy('date', 'desc')
+            );
+        }
+
+        const unsubPrimary = onSnapshot(qPrimary, (snap) => {
+            primaryDocs = snap.docs.map(doc => ({
                 id: doc.id,
+                _source: type === 'debt' ? 'debt' : (type === 'recurring' ? 'recurring' : 'regular'),
+                collection: primaryCollection,
                 ...doc.data()
             }));
-            setTransactions(docs);
-            setLoading(false);
+            updateState();
         });
 
-        return () => unsubscribe();
-    }, [type]);
+        // Secondary Listener (for income + recurring income)
+        let unsubSecondary = () => { };
+        if (secondaryCollection) {
+            const qSecondary = query(collection(db, 'users', uid, secondaryCollection), orderBy('date', 'desc'), limit(50));
+            unsubSecondary = onSnapshot(qSecondary, (snap) => {
+                secondaryDocs = snap.docs.map(doc => ({
+                    id: doc.id,
+                    _source: 'recurring',
+                    collection: secondaryCollection,
+                    ...doc.data()
+                }));
+                updateState();
+            });
+        }
+
+        return () => { unsubPrimary(); unsubSecondary(); };
+    }, [type, currentDate]);
 
     const togglePaid = async (e: React.MouseEvent, item: any) => {
         e.stopPropagation();
         if (!auth.currentUser) return;
-        const collectionName = type === 'recurring' ? 'recurring_expenses' : 'debts';
+        const collectionName = item.collection;
         const docRef = doc(db, 'users', auth.currentUser.uid, collectionName, item.id);
-        await updateDoc(docRef, { paid: !item.paid });
+
+        const isRecurring = collectionName?.includes('recurrentes');
+
+        if (isRecurring) {
+            // Toggle for specific month
+            const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+            let paidMonths = item.paidMonths || [];
+            if (paidMonths.includes(monthKey)) {
+                paidMonths = paidMonths.filter((m: string) => m !== monthKey);
+            } else {
+                paidMonths = [...paidMonths, monthKey];
+            }
+            await updateDoc(docRef, { paidMonths });
+        } else {
+            // Global toggle for debts
+            await updateDoc(docRef, { paid: !item.paid });
+        }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (item: any) => {
         if (!auth.currentUser) return;
-        const collectionName = type === 'income' ? 'income' : (type === 'recurring' ? 'recurring_expenses' : (type === 'debt' ? 'debts' : 'expenses'));
-        await deleteDoc(doc(db, 'users', auth.currentUser.uid, collectionName, id));
+        await deleteDoc(doc(db, 'users', auth.currentUser.uid, item.collection, item.id));
     };
 
     if (loading) return <p style={{ textAlign: 'center', color: '#666' }}>Cargando...</p>;
@@ -192,6 +287,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense' })
                         key={item.id}
                         item={item}
                         type={type}
+                        currentDate={currentDate}
                         onEdit={setEditingItem}
                         onDelete={handleDelete}
                         togglePaid={togglePaid}

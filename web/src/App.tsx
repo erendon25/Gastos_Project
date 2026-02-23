@@ -6,13 +6,62 @@ import Dock from './components/Dock'
 import Login from './components/Login'
 import TransactionsList from './components/TransactionsList'
 import CategorySettings from './components/CategorySettings'
-import { X } from 'lucide-react'
+import AddExpenseModal from './components/AddExpenseModal'
+import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) => void }> = ({ currentDate, onChange }) => {
+  const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      background: 'rgba(255,255,255,0.03)',
+      padding: '12px 16px',
+      borderRadius: '16px',
+      border: '1px solid rgba(255,255,255,0.05)',
+      margin: '0 20px 20px 20px'
+    }}>
+      <button onClick={() => onChange(-1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ChevronLeft size={20} />
+      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Calendar size={16} color="#818cf8" />
+        <span style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'capitalize' }}>{monthYearLabel}</span>
+      </div>
+      <button onClick={() => onChange(1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  );
+};
+
+const pageVariants = {
+  initial: { opacity: 0, x: 20, scale: 0.98 },
+  animate: { opacity: 1, x: 0, scale: 1 },
+  exit: { opacity: 0, x: -20, scale: 0.98 },
+};
+
+const pageTransition = {
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 25,
+};
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+    setCurrentDate(newDate);
+  };
 
   useEffect(() => {
     getRedirectResult(auth).catch(console.error);
@@ -31,67 +80,187 @@ function App() {
 
   if (!user) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}><Login onLogin={() => { }} /></div>
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <Dashboard currentDate={currentDate} changeMonth={changeMonth} onOpenSettings={() => setShowSettings(true)} onNavigate={setActiveTab} />;
+      case 'expenses':
+        return (
+          <div style={{ padding: '24px 0' }}>
+            <div style={{ padding: '0 20px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Diarios</h2>
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Historial de consumos normales.</p>
+            </div>
+            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
+            <div style={{ padding: '0 20px' }}>
+              <TransactionsList type="expense" currentDate={currentDate} />
+            </div>
+          </div>
+        );
+      case 'recurring':
+        return (
+          <div style={{ padding: '24px 0' }}>
+            <div style={{ padding: '0 20px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Fijos</h2>
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Alquiler, servicios y mensualidades.</p>
+            </div>
+            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
+            <div style={{ padding: '0 20px' }}>
+              <TransactionsList type="recurring" currentDate={currentDate} />
+            </div>
+          </div>
+        );
+      case 'debts':
+        return (
+          <div style={{ padding: '24px 0' }}>
+            <div style={{ padding: '0 20px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Deudas y Seguros</h2>
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Préstamos bancarios y cronogramas de pago.</p>
+            </div>
+            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
+            <div style={{ padding: '0 20px' }}>
+              <TransactionsList type="debt" currentDate={currentDate} />
+            </div>
+          </div>
+        );
+      case 'income':
+        return (
+          <div style={{ padding: '24px 0' }}>
+            <div style={{ padding: '0 20px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Ingresos</h2>
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Tus entradas de dinero.</p>
+            </div>
+            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
+            <div style={{ padding: '0 20px' }}>
+              <TransactionsList type="income" currentDate={currentDate} />
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div style={{ maxWidth: '450px', margin: '0 auto', minHeight: '100vh', position: 'relative', background: 'var(--bg-color)', color: '#fff' }}>
+    <div style={{
+      maxWidth: '450px',
+      margin: '0 auto',
+      minHeight: '100vh',
+      position: 'relative',
+      background: 'var(--bg-color)',
+      color: '#fff'
+    }}>
 
       {/* Settings Modal (Categorías) */}
-      {showSettings && (
-        <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '450px', height: '100vh', background: 'var(--bg-color)', zIndex: 2000, padding: '24px 20px', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
-            <button onClick={() => setShowSettings(false)} style={{ background: '#222', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%' }}>
-              <X size={20} />
-            </button>
-          </div>
-          <CategorySettings />
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              width: '100%',
+              height: '100vh',
+              background: 'var(--bg-color)',
+              zIndex: 2000,
+              padding: '24px 20px',
+              overflowY: 'auto'
+            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
+              <button onClick={() => setShowSettings(false)} style={{ background: '#222', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <CategorySettings />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Navegación por Pestañas */}
+      <div style={{ paddingBottom: '180px', overflowX: 'hidden' }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            transition={pageTransition}
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* (+) Floating Action Button Container */}
+      {!showSettings && (
+        <div style={{
+          position: 'fixed',
+          bottom: '112px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '450px',
+          pointerEvents: 'none',
+          zIndex: 1001,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '0 24px'
+        }}>
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowAddModal(true)}
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+              cursor: 'pointer',
+              pointerEvents: 'auto'
+            }}
+          >
+            <Plus size={28} color="#000000" strokeWidth={3} />
+          </motion.button>
         </div>
       )}
 
-      {/* Navegación por Pestañas */}
-      <div style={{ paddingBottom: '120px' }}>
-        {activeTab === 'home' && <Dashboard onOpenSettings={() => setShowSettings(true)} />}
-
-        {activeTab === 'expenses' && (
-          <div style={{ padding: '24px 20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Diarios</h2>
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Historial de consumos normales.</p>
-            <TransactionsList type="expense" />
-          </div>
-        )}
-
-        {activeTab === 'recurring' && (
-          <div style={{ padding: '24px 20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Fijos</h2>
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Alquiler, servicios y mensualidades.</p>
-            <TransactionsList type="recurring" />
-          </div>
-        )}
-
-        {activeTab === 'debts' && (
-          <div style={{ padding: '24px 20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Deudas y Seguros</h2>
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Préstamos bancarios y cronogramas de pago.</p>
-            <TransactionsList type="debt" />
-          </div>
-        )}
-
-        {activeTab === 'income' && (
-          <div style={{ padding: '24px 20px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Ingresos</h2>
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Tus entradas de dinero.</p>
-            <TransactionsList type="income" />
-          </div>
-        )}
-      </div>
-
       {!showSettings && <Dock activeTab={activeTab} onChange={setActiveTab} />}
+
+      <AnimatePresence>
+        {showAddModal && (
+          <AddExpenseModal
+            onClose={() => setShowAddModal(false)}
+            editType={
+              activeTab === 'income' ? 'income' :
+                activeTab === 'recurring' ? 'recurring' :
+                  activeTab === 'debts' ? 'debt' : 'expense'
+            }
+          />
+        )}
+      </AnimatePresence>
 
       <style>{`
         .loader { border: 3px solid #1a1a1a; border-top: 3px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
       `}</style>
     </div>
   )
 }
 
 export default App
+
