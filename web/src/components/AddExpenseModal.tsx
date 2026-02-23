@@ -339,7 +339,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                             })}
                         </div>
                     )}
-
                     {type === 'debt' && (
                         <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div style={{ display: 'flex', background: '#1c1c1e', padding: '4px', borderRadius: '12px', gap: '4px' }}>
@@ -380,40 +379,42 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                         </div>
                     )}
 
-                    {isRecurring && type !== 'debt' && (
+                    {(isRecurring || type === 'debt') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ background: '#1c1c1e', padding: '16px', borderRadius: '16px', border: '1px solid #2c2c2e' }}>
-                                <label style={{ fontSize: '12px', color: '#666', marginBottom: '8px', display: 'block' }}>Día del mes para el registro</label>
-                                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
-                                    {[...Array(31)].map((_, i) => (
-                                        <button
-                                            key={i + 1}
-                                            type="button"
-                                            onClick={() => setRecurringDay((i + 1).toString())}
-                                            style={{
-                                                minWidth: '40px',
-                                                height: '40px',
-                                                borderRadius: '10px',
-                                                border: '1px solid',
-                                                borderColor: recurringDay === (i + 1).toString() ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e',
-                                                background: recurringDay === (i + 1).toString() ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : 'transparent',
-                                                color: recurringDay === (i + 1).toString() ? '#fff' : '#666',
-                                                fontSize: '14px',
-                                                fontWeight: 'bold',
-                                                flexShrink: 0
-                                            }}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    ))}
+                            {isRecurring && type !== 'debt' && (
+                                <div style={{ background: '#1c1c1e', padding: '16px', borderRadius: '16px', border: '1px solid #2c2c2e' }}>
+                                    <label style={{ fontSize: '12px', color: '#666', marginBottom: '8px', display: 'block' }}>Día del mes para el registro</label>
+                                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                        {[...Array(31)].map((_, i) => (
+                                            <button
+                                                key={i + 1}
+                                                type="button"
+                                                onClick={() => setRecurringDay((i + 1).toString())}
+                                                style={{
+                                                    minWidth: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid',
+                                                    borderColor: recurringDay === (i + 1).toString() ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e',
+                                                    background: recurringDay === (i + 1).toString() ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : 'transparent',
+                                                    color: recurringDay === (i + 1).toString() ? '#fff' : '#666',
+                                                    fontSize: '14px',
+                                                    fontWeight: 'bold',
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
                                 {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
                                 <div style={{ flex: 1 }}>
-                                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>Registro Automático</p>
-                                    <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se registrará automáticamente cada mes' : 'Tendrás que confirmarlo manualmente cada mes'}</p>
+                                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
+                                    <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
                                 </div>
                             </div>
                         </div>

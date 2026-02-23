@@ -32,10 +32,20 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
     const dueDate = item.dueDate?.toDate();
     const isPastDue = type === 'debt' && !item.paid && dueDate && dueDate < now;
 
-    // Monthly status for recurring items
+    // Monthly status for recurring items and debts
     const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-    const isPaid = (type === 'recurring' || item.collection?.includes('recurrentes'))
-        ? (item.autoDebit || (item.paidMonths && item.paidMonths.includes(monthKey)))
+    const isDebt = type === 'debt' || item.collection?.includes('prestamos');
+    const isMonthPassed = currentDate.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
+
+    let isAutoPaid = false;
+    if (item.autoDebit || (isDebt && item.debtSubtype === 'insurance')) {
+        if (isMonthPassed) isAutoPaid = true;
+        else if (isCurrentMonth) isAutoPaid = now.getDate() >= (item.recurringDay || 1);
+    }
+
+    const isPaid = (type === 'recurring' || item.collection?.includes('recurrentes') || isDebt)
+        ? (isAutoPaid || (item.paidMonths && item.paidMonths.includes(monthKey)))
         : item.paid;
 
     const handleDragEnd = (_: any, info: any) => {
@@ -254,19 +264,40 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
         const docRef = doc(db, 'users', auth.currentUser.uid, collectionName, item.id);
 
         const isRecurring = collectionName?.includes('recurrentes');
+        const isDebt = collectionName?.includes('prestamos');
 
-        if (isRecurring) {
+        if (isRecurring || isDebt) {
             // Toggle for specific month
             const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
             let paidMonths = item.paidMonths || [];
-            if (paidMonths.includes(monthKey)) {
+            const wasPaid = paidMonths.includes(monthKey);
+
+            if (wasPaid) {
                 paidMonths = paidMonths.filter((m: string) => m !== monthKey);
             } else {
                 paidMonths = [...paidMonths, monthKey];
             }
-            await updateDoc(docRef, { paidMonths });
+
+            const updates: any = { paidMonths };
+
+            // For loans, also update the remaining amount and quotas
+            if (isDebt && item.debtSubtype === 'loan') {
+                const amount = parseFloat(item.amount) || 0;
+                const currentRemaining = parseFloat(item.remainingAmount) || 0;
+                const currentQuotas = parseInt(item.paidQuotas) || 0;
+
+                if (!wasPaid) {
+                    updates.remainingAmount = Math.max(0, currentRemaining - amount).toString();
+                    updates.paidQuotas = (currentQuotas + 1).toString();
+                } else {
+                    updates.remainingAmount = (currentRemaining + amount).toString();
+                    updates.paidQuotas = Math.max(0, currentQuotas - 1).toString();
+                }
+            }
+
+            await updateDoc(docRef, updates);
         } else {
-            // Global toggle for debts
+            // Global toggle for regular items (legacy)
             await updateDoc(docRef, { paid: !item.paid });
         }
     };
@@ -279,8 +310,23 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
     if (loading) return <p style={{ textAlign: 'center', color: '#666' }}>Cargando...</p>;
     if (transactions.length === 0) return <p style={{ textAlign: 'center', color: '#444', marginTop: '20px' }}>No hay registros.</p>;
 
+    const totalAmount = transactions.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="premium-card" style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                padding: '16px',
+                marginBottom: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>Total {type === 'income' ? 'Ingresos' : 'Gastos'} {type === 'recurring' ? 'Fijos' : ''}</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>S/ {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+            </div>
+
             <AnimatePresence>
                 {transactions.map((item) => (
                     <SwipeableItem

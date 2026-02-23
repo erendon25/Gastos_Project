@@ -61,7 +61,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         const data = doc.data();
         const amt = data.amount || 0;
         const d = data.date?.toDate();
-        total += amt;
+        if (d && d <= now) {
+          total += amt;
+        }
         if (d && d >= fiscalStart && d <= fiscalEnd) {
           monthly += amt;
         }
@@ -78,7 +80,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         const data = doc.data();
         const amt = data.amount || 0;
         const d = data.date?.toDate();
-        total += amt;
+        if (d && d <= now) {
+          total += amt;
+        }
         if (d && d >= fiscalStart && d <= fiscalEnd) {
           monthly += amt;
         }
@@ -96,29 +100,48 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
       snap.docs.forEach(doc => {
         const data = doc.data();
         const amt = data.amount || 0;
-        const d = data.date?.toDate(); // Start date of the recurring expense
+        const d = data.date?.toDate();
+        if (!d) return;
+        // Skip invalid historical dates (safeguard against typos like year 205)
+        if (d.getFullYear() < 2000) return;
 
-        // Cumulative calculation: sum all recurring items that started before or in the selected month
-        // and are not explicitly ended before the selected month.
-        if (!d || d <= fiscalEnd) { // If it started before or in the selected fiscal month
-          const endDate = data.endDate?.toDate();
-          if (!endDate || endDate >= fiscalStart) { // If no end date, or end date is in or after current fiscal month
-            cumulative += amt;
-          }
-        }
-
-        // Monthly calculation (based on manual check or auto-debit)
-        if (!d || d <= fiscalEnd) {
+        // 1. Monthly (Budget/View for the SELECTED month)
+        if (d <= fiscalEnd) {
+          const isManualPaid = data.paidMonths && data.paidMonths.includes(monthKey);
           let isAutoPaid = false;
           if (data.autoDebit && !isFutureMonth) {
             if (isPastMonth) isAutoPaid = true;
             else if (isCurrentMonth) isAutoPaid = now.getDate() >= (data.recurringDay || 1);
           }
-          const isManualPaid = data.paidMonths && data.paidMonths.includes(monthKey);
-
-          // Only add to monthly if it's considered paid for this specific month
-          if (isAutoPaid || isManualPaid) {
+          if (isManualPaid || isAutoPaid) {
             monthlyRecurringExpenses += amt;
+          }
+        }
+
+        // 2. Cumulative (Wallet Balance - Total spent up to TODAY)
+        // A) Manual checks (always count)
+        cumulative += (data.paidMonths?.length || 0) * amt;
+
+        // B) Auto-debits (count months that passed and aren't manually checked)
+        if (data.autoDebit) {
+          let checkDate = new Date(d.getFullYear(), d.getMonth(), 1);
+          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+          while (checkDate <= nowMonth) {
+            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
+            const isManuallyCovered = data.paidMonths && data.paidMonths.includes(mKey);
+
+            if (!isManuallyCovered) {
+              if (checkDate < nowMonth) {
+                cumulative += amt;
+              } else if (now.getDate() >= (data.recurringDay || 1)) {
+                // Today is the pay day or later
+                cumulative += amt;
+              }
+            }
+            checkDate.setMonth(checkDate.getMonth() + 1);
+            // Safety break
+            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
           }
         }
       });
@@ -137,18 +160,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         const data = doc.data();
         const amt = data.amount || 0;
         const d = data.date?.toDate();
+        if (!d || d.getFullYear() < 2000) return;
 
-        if (!d || d <= fiscalEnd) {
+        if (d <= fiscalEnd) {
           // Monthly calculation
+          const isManualReceived = data.paidMonths && data.paidMonths.includes(monthKey);
           let isAutoReceived = false;
           if (data.autoDebit && !isFutureMonth) {
             if (isPastMonth) isAutoReceived = true;
             else if (isCurrentMonth) isAutoReceived = now.getDate() >= (data.recurringDay || 1);
           }
-          const isManualReceived = data.paidMonths && data.paidMonths.includes(monthKey);
-          if (isAutoReceived || isManualReceived) monthlyRecurringIncome += amt;
+          if (isManualReceived || isAutoReceived) monthlyRecurringIncome += amt;
+        }
 
-          cumulative += monthlyRecurringIncome;
+        // Cumulative Income (Wallet)
+        cumulative += (data.paidMonths?.length || 0) * amt;
+        if (data.autoDebit) {
+          let checkDate = new Date(d.getFullYear(), d.getMonth(), 1);
+          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          while (checkDate <= nowMonth) {
+            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
+            if ((!data.paidMonths || !data.paidMonths.includes(mKey))) {
+              if (checkDate < nowMonth) cumulative += amt;
+              else if (now.getDate() >= (data.recurringDay || 1)) cumulative += amt;
+            }
+            checkDate.setMonth(checkDate.getMonth() + 1);
+            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
+          }
         }
       });
       setRecurringIncomeMonthly(monthlyRecurringIncome);
@@ -181,11 +219,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         .reduce((acc, d: any) => acc + (d.amount || 0), 0);
       setDebtsMonthly(debtExp);
 
-      // Total cumulative debt paid: manual checks across all time
+      // Total cumulative debt paid: manual checks + auto-debits across all time
       const cumulativePaid = allDocs.reduce((acc, d: any) => {
-        const manualTotal = (d.paidMonths?.length || 0) * (d.amount || 0);
-        // For insurance or auto-debit, we could estimate, but manual checks are more precise for now
-        return acc + manualTotal;
+        const amt = d.amount || 0;
+        const startDate = d.startDate?.toDate();
+        if (!startDate || startDate.getFullYear() < 2000) return acc;
+
+        const manualTotal = (d.paidMonths?.length || 0) * amt;
+
+        let autoTotal = 0;
+        if (d.autoDebit || d.debtSubtype === 'insurance') {
+          let checkDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+          while (checkDate <= nowMonth) {
+            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
+            const isManuallyCovered = d.paidMonths && d.paidMonths.includes(mKey);
+
+            if (!isManuallyCovered) {
+              if (checkDate < nowMonth) {
+                autoTotal += amt;
+              } else if (now.getDate() >= (d.recurringDay || 1)) {
+                autoTotal += amt;
+              }
+            }
+            checkDate.setMonth(checkDate.getMonth() + 1);
+            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
+          }
+        }
+
+        return acc + manualTotal + autoTotal;
       }, 0);
       setTotals(prev => ({ ...prev, cumulativeDebtsPaid: cumulativePaid }));
     });
@@ -202,7 +265,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const totalRemainingDebt = debts
     .filter(d => d.debtSubtype === 'loan')
-    .reduce((acc, d) => acc + (d.remainingAmount || 0), 0);
+    .reduce((acc, d) => acc + (parseFloat(d.remainingAmount) || 0), 0);
 
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
@@ -284,6 +347,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Egresos</p>
           </div>
           <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalExpenses.toLocaleString()}</p>
+          <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Fijos: S/ {recurringExpensesMonthly.toLocaleString()}</p>
         </div>
       </div>
 

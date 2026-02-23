@@ -7,7 +7,7 @@ export const CATEGORIES = [
     { id: 'servicios', name: 'Servicios', icon: Lightbulb, color: '#ef4444', keywords: ['luz', 'agua', 'internet', 'telefono', 'gas', 'servicios', 'recibo', 'movistar', 'claro', 'entel'] },
     { id: 'seguros', name: 'Seguros', icon: ShieldCheck, color: '#06b6d4', keywords: ['seguro', 'rimac', 'pacifico', 'mapfre', 'soat', 'eps', 'oncologico'] },
     { id: 'prestamos', name: 'Préstamos', icon: Landmark, color: '#8b5cf6', keywords: ['prestamo', 'banco', 'bcp', 'interbank', 'scotiabank', 'bbva', 'cuota', 'credito'] },
-    { id: 'ocio', name: 'Ocio', icon: Pizza, color: '#f43f5e', keywords: ['ocio', 'cine', 'bar', 'fiesta', 'salida', 'netflix', 'spotify', 'juego', 'diversion'] },
+    { id: 'ocio', name: 'Ocio', icon: Pizza, color: '#f43f5e', keywords: ['ocio', 'cine', 'bar', 'fiesta', 'salida', 'netflix', 'spotify', 'juego', 'diversion', 'vape', 'cigarro', 'cigarros', 'tabaco'] },
     { id: 'salud', name: 'Salud', icon: Heart, color: '#ec4899', keywords: ['salud', 'medico', 'farmacia', 'medicina', 'dentista', 'clinica', 'hospital'] },
     { id: 'educacion', name: 'Educación', icon: GraduationCap, color: '#6366f1', keywords: ['educacion', 'universidad', 'colegio', 'curso', 'libro', 'pension', 'matricula'] },
     { id: 'ingresos', name: 'Ingresos', icon: TrendingUp, color: '#4ade80', keywords: ['sueldo', 'pago', 'ingreso', 'comision', 'honorario', 'adelanto'] },
@@ -49,6 +49,7 @@ export const EMOJI_MAP: Record<string, string> = {
     'juego': '🎮', 'playstation': '🎮', 'xbox': '🎮', 'nintendo': '🎮', 'vapor': '🎮',
     'viaje': '✈️', 'vuelo': '✈️', 'hotel': '🏨', 'turismo': '🗺️', 'vacaciones': '🏖️',
     'hospedaje': '🛌', 'airbnb': '🏠',
+    'vape': '💨', 'cigarro': '🚬', 'cigarros': '🚬', 'tabaco': '🚬',
 
     // Salud & Bienestar
     'salud': '❤️', 'medico': '👨‍⚕️', 'doctor': '👨‍⚕️', 'clinica': '🏥', 'hospital': '🏥',
