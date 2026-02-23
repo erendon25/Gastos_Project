@@ -61,7 +61,8 @@ function App() {
   const [presetCategory, setPresetCategory] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [draftExpense, setDraftExpense] = useState<any>(null)
-  const [draftSettings, setDraftSettings] = useState<any>(null)
+  const [draftCategories, setDraftCategories] = useState<any>(null)
+  const [draftProfile, setDraftProfile] = useState<any>(null)
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
@@ -219,8 +220,8 @@ function App() {
             </div>
 
             {settingsTab === 'categories' ?
-              <CategorySettings draftData={draftSettings} onUpdateDraft={setDraftSettings} /> :
-              <PasswordSettings draftData={draftSettings} onUpdateDraft={setDraftSettings} />
+              <CategorySettings draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
+              <PasswordSettings draftData={draftProfile} onUpdateDraft={setDraftProfile} />
             }
           </motion.div>
         )}
