@@ -120,7 +120,13 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
                             <p style={{ fontSize: '15px', fontWeight: 'bold' }}>
                                 {item.description || item.category}
                             </p>
-                            <p style={{ fontSize: '11px', color: '#666' }}>{item.category}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <p style={{ fontSize: '11px', color: '#666' }}>{item.category}</p>
+                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>•</span>
+                                <p style={{ fontSize: '10px', color: '#444' }}>
+                                    {item.date?.toDate().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })} • {item.date?.toDate().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
                         </div>
                     </div>
 

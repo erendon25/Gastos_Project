@@ -17,7 +17,9 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
     // Press & Swipe Logic
     const startY = useRef<number>(0);
+    const startX = useRef<number>(0);
     const isPressing = useRef<boolean>(false);
+    const swipeDirection = useRef<'h' | 'v' | null>(null);
 
     useEffect(() => {
         if (!auth.currentUser) return;
@@ -85,31 +87,54 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
     const handleTouchStart = (id: string, e: React.TouchEvent) => {
         startY.current = e.touches[0].clientY;
+        startX.current = e.touches[0].clientX;
         isPressing.current = true;
+        swipeDirection.current = null;
         setActiveId(id);
     };
 
     const handleTouchMove = (id: string, e: React.TouchEvent) => {
         if (!isPressing.current) return;
+
         const currentY = e.touches[0].clientY;
-        const diff = startY.current - currentY;
-        // Dampen the movement
-        setYOffset({ [id]: -diff * 0.5 });
+        const currentX = e.touches[0].clientX;
+        const diffY = startY.current - currentY;
+        const diffX = startX.current - currentX;
+
+        // Determine direction on first significant movement
+        if (!swipeDirection.current) {
+            if (Math.abs(diffX) > 10) {
+                swipeDirection.current = 'h';
+                isPressing.current = false; // Allow horizontal scroll
+                setActiveId(null);
+                return;
+            } else if (Math.abs(diffY) > 10) {
+                swipeDirection.current = 'v';
+            } else {
+                return; // Not enough movement yet
+            }
+        }
+
+        if (swipeDirection.current === 'v') {
+            // Dampen the movement
+            setYOffset({ [id]: -diffY * 0.5 });
+        }
     };
 
     const handleTouchEnd = (catId: string, catName: string, budget: number, e: React.TouchEvent) => {
         const endY = e.changedTouches[0].clientY;
-        const diff = startY.current - endY;
+        const diffY = startY.current - endY;
 
-        if (isPressing.current) {
-            if (diff > 80) { // Swipe up
+        if (isPressing.current && swipeDirection.current === 'v') {
+            if (diffY > 80) { // Swipe up
                 setEditingBudget({ id: catId, name: catName, current: budget });
                 setNewBudgetValue(budget.toString());
-            } else if (diff < -80) { // Swipe down
+            } else if (diffY < -80) { // Swipe down
                 onAddExpense(catName);
             }
         }
         isPressing.current = false;
+        swipeDirection.current = null;
         setActiveId(null);
         setYOffset({});
     };
@@ -148,7 +173,7 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                             border: '1px solid',
                             borderStyle: hasBudget ? 'dashed' : 'solid',
                             overflow: 'hidden',
-                            touchAction: 'none'
+                            touchAction: 'pan-x'
                         }}
                     >
                         {/* Fill Progress */}

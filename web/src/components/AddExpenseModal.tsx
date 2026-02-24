@@ -54,6 +54,19 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         return DEFAULT_CATEGORIES[0].name;
     });
     const [autoDebit, setAutoDebit] = useState(editItem?.autoDebit ?? (draftData?.autoDebit ?? true));
+    const [selectedDate, setSelectedDate] = useState(() => {
+        if (editItem?.date) return formatLocalDate(editItem.date.toDate());
+        if (draftData?.date) return draftData.date;
+        return formatLocalDate(new Date());
+    });
+    const [selectedTime, setSelectedTime] = useState(() => {
+        if (editItem?.date) {
+            const d = editItem.date.toDate();
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    });
 
     const [totalLoanAmount, setTotalLoanAmount] = useState(editItem?.totalLoanAmount?.toString() || (draftData?.totalLoanAmount || ''));
     const [paidQuotas, setPaidQuotas] = useState(editItem?.paidQuotas?.toString() || (draftData?.paidQuotas || '0'));
@@ -147,12 +160,18 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
             amount: parseFloat(amount),
             description,
             category,
-            categoryEmoji, // Guardamos el emoji para mostrarlo en el historial
+            categoryEmoji,
             isRecurring: type === 'debt' ? true : isRecurring,
             autoDebit: type === 'debt' ? false : (isRecurring ? autoDebit : false),
             paid: editItem ? editItem.paid : (type === 'income' ? (!isRecurring) : (isRecurring && autoDebit)),
             recurringDay: isRecurring ? parseInt(recurringDay) : null
         };
+
+        // Date Handling
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const [hours, mins] = selectedTime.split(':').map(Number);
+        const finalDate = new Date(year, month - 1, day, hours, mins);
+        data.date = Timestamp.fromDate(finalDate);
 
         if (type === 'debt') {
             data.startDate = Timestamp.fromDate(parseLocalDate(startDate));
@@ -353,17 +372,38 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                         <input
                             type="text"
-                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : "¿En qué gastaste?"}
+                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : (presetCategory ? "¿Detalle o local?" : "¿En qué gastaste?")}
                             className="input-field"
                             value={description}
                             onChange={(e) => {
                                 setDescription(e.target.value);
-                                if (type !== 'income') {
+                                if (type !== 'income' && !presetCategory) {
                                     const detected = getCategoryByText(e.target.value);
                                     setCategory(detected.name);
                                 }
                             }} required
                         />
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>Fecha</label>
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    style={{ background: 'none', border: 'none', color: '#fff', fontSize: '13px', outline: 'none' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>Hora</label>
+                                <input
+                                    type="time"
+                                    value={selectedTime}
+                                    onChange={(e) => setSelectedTime(e.target.value)}
+                                    style={{ background: 'none', border: 'none', color: '#fff', fontSize: '13px', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
 
                         {type !== 'income' && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
