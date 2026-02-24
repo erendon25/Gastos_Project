@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Apple, Zap, Key, User } from 'lucide-react';
-import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { auth, googleProvider, appleProvider } from '../lib/firebase';
 
 interface LoginProps {
@@ -14,6 +14,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [isRegistering, setIsRegistering] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
 
     const handleGoogleLogin = async () => {
         setLoading(true);
@@ -50,6 +51,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError('');
         setSuccess('');
         try {
+            await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
             if (isRegistering) {
                 await createUserWithEmailAndPassword(auth, email, password);
                 setSuccess('¡Cuenta creada con éxito! Bienvenido.');
@@ -118,11 +120,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <input type="password" placeholder="Contraseña" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
 
-                {!isRegistering && (
-                    <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: '#666', fontSize: '12px', textAlign: 'right', cursor: 'pointer', padding: '0 4px' }}>
-                        ¿Olvidaste tu contraseña?
-                    </button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#888' }}>
+                        <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            style={{ accentColor: 'var(--accent-color)' }}
+                        />
+                        Recordar cuenta
+                    </label>
+                    {!isRegistering && (
+                        <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: '#666', fontSize: '12px', textAlign: 'right', cursor: 'pointer', padding: '0' }}>
+                            ¿Olvidaste tu contraseña?
+                        </button>
+                    )}
+                </div>
 
                 <button type="submit" className="btn-primary" disabled={loading} style={{
                     background: isRegistering ? 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)' : 'var(--accent-color)',

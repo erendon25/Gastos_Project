@@ -13,257 +13,152 @@ interface DashboardProps {
   onAddFromCategory: (cat: string) => void;
 }
 
-interface Totals {
+interface TotalsState {
   income: number;
   expenses: number;
-  recurring: number;
-  debts: number;
+  recurringIncome: number;
+  recurringExpenses: number;
+  debtsPaid: number;
   cumulativeIncome: number;
   cumulativeExpenses: number;
-  cumulativeIncomeRecPaid: number;
-  cumulativeRecurringPaid: number;
-  cumulativeDebtsPaid: number;
+  cumulativeIncomeRec: number;
+  cumulativeExpensesRec: number;
+  cumulativeDebts: number;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, changeMonth, onNavigate, onAddFromCategory }) => {
   const now = new Date();
-  const [totals, setTotals] = useState<Totals>({
-    income: 0,
-    expenses: 0,
-    recurring: 0,
-    debts: 0,
-    cumulativeIncome: 0,
-    cumulativeExpenses: 0,
-    cumulativeIncomeRecPaid: 0,
-    cumulativeRecurringPaid: 0,
-    cumulativeDebtsPaid: 0
+  const [data, setData] = useState<TotalsState>({
+    income: 0, expenses: 0, recurringIncome: 0, recurringExpenses: 0, debtsPaid: 0,
+    cumulativeIncome: 0, cumulativeExpenses: 0, cumulativeIncomeRec: 0, cumulativeExpensesRec: 0, cumulativeDebts: 0
   });
-  const [recurringIncomeMonthly, setRecurringIncomeMonthly] = useState(0);
-  const [recurringExpensesMonthly, setRecurringExpensesMonthly] = useState(0);
-  const [debtsMonthly, setDebtsMonthly] = useState(0);
   const [debts, setDebts] = useState<any[]>([]);
 
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Fiscal Month: From 25th of previous month to 24th of current month
-    const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25, 0, 0, 0);
-    const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
-
-    const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
+    const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
+    const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
     const isPastMonth = currentDate.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
     const isFutureMonth = currentDate.getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
-    // Unified Expenses (Regular)
-    const qExp = query(collection(db, 'users', auth.currentUser.uid, 'gastos'));
-    const unsubExp = onSnapshot(qExp, (snap) => {
-      let monthly = 0;
-      let total = 0;
+    const unsubExp = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'gastos')), (snap) => {
+      let monthly = 0, total = 0;
       snap.docs.forEach(doc => {
-        const data = doc.data();
-        const amt = data.amount || 0;
-        const d = data.date?.toDate();
-        if (d && d <= now) {
+        const d = doc.data();
+        const amt = Number(d.amount) || 0;
+        const dt = d.date?.toDate();
+        if (dt) {
           total += amt;
-        }
-        if (d && d >= fiscalStart && d <= fiscalEnd) {
-          monthly += amt;
+          if (dt >= fiscalStart && dt <= fiscalEnd) monthly += amt;
         }
       });
-      setTotals(prev => ({ ...prev, expenses: monthly, cumulativeExpenses: total }));
+      setData(prev => ({ ...prev, expenses: monthly, cumulativeExpenses: total }));
     });
 
-    // Unified Income (Regular)
-    const qInc = query(collection(db, 'users', auth.currentUser.uid, 'ingresos'));
-    const unsubInc = onSnapshot(qInc, (snap) => {
-      let monthly = 0;
-      let total = 0;
+    const unsubInc = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'ingresos')), (snap) => {
+      let monthly = 0, total = 0;
       snap.docs.forEach(doc => {
-        const data = doc.data();
-        const amt = data.amount || 0;
-        const d = data.date?.toDate();
-        if (d && d <= now) {
+        const d = doc.data();
+        const amt = Number(d.amount) || 0;
+        const dt = d.date?.toDate();
+        if (dt) {
           total += amt;
-        }
-        if (d && d >= fiscalStart && d <= fiscalEnd) {
-          monthly += amt;
+          if (dt >= fiscalStart && dt <= fiscalEnd) monthly += amt;
         }
       });
-      setTotals(prev => ({ ...prev, income: monthly, cumulativeIncome: total }));
+      setData(prev => ({ ...prev, income: monthly, cumulativeIncome: total }));
     });
 
-    // Expenses Recurring
-    const qRec = query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes'));
-    const unsubRec = onSnapshot(qRec, (snap) => {
-      const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-      let monthlyRecurringExpenses = 0;
-      let cumulative = 0;
-
+    const unsubRec = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')), (snap) => {
+      const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+      let monthly = 0, cumulative = 0;
+      const curNow = new Date();
       snap.docs.forEach(doc => {
-        const data = doc.data();
-        const amt = data.amount || 0;
-        const d = data.date?.toDate();
-        if (!d) return;
-        // Skip invalid historical dates (safeguard against typos like year 205)
-        if (d.getFullYear() < 2000) return;
-
-        // 1. Monthly (Budget/View for the SELECTED month)
-        if (d <= fiscalEnd) {
-          const isManualPaid = data.paidMonths && data.paidMonths.includes(monthKey);
-          let isAutoPaid = false;
-          if (data.autoDebit && !isFutureMonth) {
-            if (isPastMonth) isAutoPaid = true;
-            else if (isCurrentMonth) isAutoPaid = now.getDate() >= (data.recurringDay || 1);
-          }
-          if (isManualPaid || isAutoPaid) {
-            monthlyRecurringExpenses += amt;
-          }
+        const d = doc.data();
+        const amt = Number(d.amount) || 0;
+        const dt = d.date?.toDate();
+        if (!dt || dt.getFullYear() < 2000) return;
+        if (dt <= fiscalEnd) {
+          const isPaid = (d.paidMonths?.includes(mKey)) || (d.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (d.recurringDay || 1))));
+          if (isPaid) monthly += amt;
         }
-
-        // 2. Cumulative (Wallet Balance - Total spent up to TODAY)
-        // A) Manual checks (always count)
-        cumulative += (data.paidMonths?.length || 0) * amt;
-
-        // B) Auto-debits (count months that passed and aren't manually checked)
-        if (data.autoDebit) {
-          let checkDate = new Date(d.getFullYear(), d.getMonth(), 1);
-          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-          while (checkDate <= nowMonth) {
-            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
-            const isManuallyCovered = data.paidMonths && data.paidMonths.includes(mKey);
-
-            if (!isManuallyCovered) {
-              if (checkDate < nowMonth) {
-                cumulative += amt;
-              } else if (now.getDate() >= (data.recurringDay || 1)) {
-                // Today is the pay day or later
-                cumulative += amt;
-              }
+        cumulative += (d.paidMonths?.length || 0) * amt;
+        if (d.autoDebit) {
+          let chk = new Date(dt.getFullYear(), dt.getMonth(), 1);
+          const nowM = new Date(curNow.getFullYear(), curNow.getMonth(), 1);
+          while (chk <= nowM) {
+            if (!d.paidMonths?.includes(`${chk.getFullYear()}-${chk.getMonth()}`)) {
+              if (chk < nowM || curNow.getDate() >= (d.recurringDay || 1)) cumulative += amt;
             }
-            checkDate.setMonth(checkDate.getMonth() + 1);
-            // Safety break
-            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
+            chk.setMonth(chk.getMonth() + 1); if (chk.getFullYear() > curNow.getFullYear() + 1) break;
           }
         }
       });
-      setRecurringExpensesMonthly(monthlyRecurringExpenses);
-      setTotals(prev => ({ ...prev, cumulativeRecurringPaid: cumulative }));
+      setData(prev => ({ ...prev, recurringExpenses: monthly, cumulativeExpensesRec: cumulative }));
     });
 
-    // Income Recurring
-    const qIncRec = query(collection(db, 'users', auth.currentUser.uid, 'ingresos_recurrentes'));
-    const unsubIncRec = onSnapshot(qIncRec, (snap) => {
-      const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-      let monthlyRecurringIncome = 0;
-      let cumulative = 0;
-
+    const unsubIncRec = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'ingresos_recurrentes')), (snap) => {
+      const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+      let monthly = 0, cumulative = 0;
+      const curNow = new Date();
       snap.docs.forEach(doc => {
-        const data = doc.data();
-        const amt = data.amount || 0;
-        const d = data.date?.toDate();
-        if (!d || d.getFullYear() < 2000) return;
-
-        if (d <= fiscalEnd) {
-          // Monthly calculation
-          const isManualReceived = data.paidMonths && data.paidMonths.includes(monthKey);
-          let isAutoReceived = false;
-          if (data.autoDebit && !isFutureMonth) {
-            if (isPastMonth) isAutoReceived = true;
-            else if (isCurrentMonth) isAutoReceived = now.getDate() >= (data.recurringDay || 1);
-          }
-          if (isManualReceived || isAutoReceived) monthlyRecurringIncome += amt;
+        const d = doc.data();
+        const amt = Number(d.amount) || 0;
+        const dt = d.date?.toDate();
+        if (!dt || dt.getFullYear() < 2000) return;
+        if (dt <= fiscalEnd) {
+          const isRcv = (d.paidMonths?.includes(mKey)) || (d.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (d.recurringDay || 1))));
+          if (isRcv) monthly += amt;
         }
-
-        // Cumulative Income (Wallet)
-        cumulative += (data.paidMonths?.length || 0) * amt;
-        if (data.autoDebit) {
-          let checkDate = new Date(d.getFullYear(), d.getMonth(), 1);
-          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          while (checkDate <= nowMonth) {
-            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
-            if ((!data.paidMonths || !data.paidMonths.includes(mKey))) {
-              if (checkDate < nowMonth) cumulative += amt;
-              else if (now.getDate() >= (data.recurringDay || 1)) cumulative += amt;
+        cumulative += (d.paidMonths?.length || 0) * amt;
+        if (d.autoDebit) {
+          let chk = new Date(dt.getFullYear(), dt.getMonth(), 1);
+          const nowM = new Date(curNow.getFullYear(), curNow.getMonth(), 1);
+          while (chk <= nowM) {
+            if (!d.paidMonths?.includes(`${chk.getFullYear()}-${chk.getMonth()}`)) {
+              if (chk < nowM || curNow.getDate() >= (d.recurringDay || 1)) cumulative += amt;
             }
-            checkDate.setMonth(checkDate.getMonth() + 1);
-            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
+            chk.setMonth(chk.getMonth() + 1); if (chk.getFullYear() > curNow.getFullYear() + 1) break;
           }
         }
       });
-      setRecurringIncomeMonthly(monthlyRecurringIncome);
-      setTotals(prev => ({ ...prev, cumulativeIncomeRecPaid: cumulative }));
+      setData(prev => ({ ...prev, recurringIncome: monthly, cumulativeIncomeRec: cumulative }));
     });
 
-    // Detailed Debt Progress (Loans + Insurances)
     const unsubDebt = onSnapshot(collection(db, 'users', auth.currentUser.uid, 'prestamos'), (snap) => {
-      const allDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const activeDocs = allDocs.filter((d: any) => {
-        if (!d.startDate || !d.dueDate) return true;
-        const s = d.startDate.toDate();
-        const e = d.dueDate.toDate();
-        return s <= fiscalEnd && e >= fiscalStart;
-      });
-      setDebts(activeDocs);
+      const all = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const curNow = new Date();
+      const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+      setDebts(all.filter((d: any) => d.startDate && d.dueDate && d.startDate.toDate() <= fiscalEnd && d.dueDate.toDate() >= fiscalStart));
 
-      const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-      const debtExp = activeDocs
-        .filter((d: any) => {
-          // Count in balance only if paid or auto-debit (with date check)
-          let isAutoPaid = false;
-          if (d.autoDebit || d.debtSubtype === 'insurance') {
-            if (isPastMonth) isAutoPaid = true;
-            else if (isCurrentMonth) isAutoPaid = now.getDate() >= (d.recurringDay || 1);
-          }
-          const isManualPaid = d.paidMonths && d.paidMonths.includes(monthKey);
-          return isAutoPaid || isManualPaid;
-        })
-        .reduce((acc, d: any) => acc + (d.amount || 0), 0);
-      setDebtsMonthly(debtExp);
-
-      // Total cumulative debt paid: manual checks + auto-debits across all time
-      const cumulativePaid = allDocs.reduce((acc, d: any) => {
-        const amt = d.amount || 0;
-        const startDate = d.startDate?.toDate();
-        if (!startDate || startDate.getFullYear() < 2000) return acc;
-
-        const manualTotal = (d.paidMonths?.length || 0) * amt;
-
-        let autoTotal = 0;
+      const mon = all.filter((d: any) => (d.paidMonths?.includes(mKey)) || ((d.autoDebit || d.debtSubtype === 'insurance') && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (d.recurringDay || 1))))).reduce((a, d: any) => a + (Number(d.amount) || 0), 0);
+      const cum = all.reduce((acc, d: any) => {
+        const amt = Number(d.amount) || 0;
+        const sd = d.startDate?.toDate();
+        if (!sd || sd.getFullYear() < 2000) return acc;
+        let tot = (d.paidMonths?.length || 0) * amt;
         if (d.autoDebit || d.debtSubtype === 'insurance') {
-          let checkDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-          const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-          while (checkDate <= nowMonth) {
-            const mKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
-            const isManuallyCovered = d.paidMonths && d.paidMonths.includes(mKey);
-
-            if (!isManuallyCovered) {
-              if (checkDate < nowMonth) {
-                autoTotal += amt;
-              } else if (now.getDate() >= (d.recurringDay || 1)) {
-                autoTotal += amt;
-              }
+          let chk = new Date(sd.getFullYear(), sd.getMonth(), 1), nowM = new Date(curNow.getFullYear(), curNow.getMonth(), 1);
+          while (chk <= nowM) {
+            if (!d.paidMonths?.includes(`${chk.getFullYear()}-${chk.getMonth()}`)) {
+              if (chk < nowM || curNow.getDate() >= (d.recurringDay || 1)) tot += amt;
             }
-            checkDate.setMonth(checkDate.getMonth() + 1);
-            if (checkDate.getFullYear() > now.getFullYear() + 1) break;
+            chk.setMonth(chk.getMonth() + 1); if (chk.getFullYear() > curNow.getFullYear() + 1) break;
           }
         }
-
-        return acc + manualTotal + autoTotal;
+        return acc + tot;
       }, 0);
-      setTotals(prev => ({ ...prev, cumulativeDebtsPaid: cumulativePaid }));
+      setData(prev => ({ ...prev, debtsPaid: mon, cumulativeDebts: cum }));
     });
 
-    return () => { unsubExp(); unsubInc(); unsubRec(); unsubDebt(); unsubIncRec(); };
+    return () => { unsubExp(); unsubInc(); unsubRec(); unsubIncRec(); unsubDebt(); };
   }, [currentDate]);
 
-  const totalIncome = totals.income + recurringIncomeMonthly;
-  const totalExpenses = totals.expenses + recurringExpensesMonthly + debtsMonthly;
-
-  // Real Wallet Balance: Everything Earned - Everything Spent
-  const balance = (totals.cumulativeIncome + totals.cumulativeIncomeRecPaid)
-    - (totals.cumulativeExpenses + totals.cumulativeRecurringPaid + totals.cumulativeDebtsPaid);
+  const totalIncome = data.income + data.recurringIncome;
+  const totalExpenses = data.expenses + data.recurringExpenses + data.debtsPaid;
+  const monthlyBalance = totalIncome - totalExpenses;
 
   const totalRemainingDebt = debts
     .filter(d => d.debtSubtype === 'loan')
@@ -271,9 +166,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
-  const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25);
-  const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24);
-  const rangeLabel = `${fiscalStart.getDate()} ${fiscalStart.toLocaleString('es-ES', { month: 'short' })} - ${fiscalEnd.getDate()} ${fiscalEnd.toLocaleString('es-ES', { month: 'short' })}`;
+  const fiscalStartLabel = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const fiscalEndLabel = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const rangeLabel = `${fiscalStartLabel.getDate()} ${fiscalStartLabel.toLocaleString('es-ES', { month: 'short' })} - ${fiscalEndLabel.getDate()} ${fiscalEndLabel.toLocaleString('es-ES', { month: 'short' })}`;
 
   return (
     <div className="dashboard-container" style={{ padding: '24px 20px 150px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -327,8 +222,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         overflow: 'hidden'
       }}>
         <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(129, 138, 248, 0.05)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px', position: 'relative' }}>Saldo total disponible</p>
-        <h1 style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-1px', position: 'relative' }}>S/ {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px', position: 'relative' }}>Saldo del mes</p>
+        <h1 style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-1px', position: 'relative' }}>S/ {monthlyBalance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h1>
       </div>
 
       {/* Quick Summary Grid */}
@@ -342,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             <TrendingUp size={16} color="var(--income-color)" />
             <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Ingresos</p>
           </div>
-          <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalIncome.toLocaleString()}</p>
+          <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalIncome.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
         </div>
         <div
           className="premium-card"
@@ -353,8 +248,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             <TrendingDown size={16} color="var(--expense-color)" />
             <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Egresos</p>
           </div>
-          <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalExpenses.toLocaleString()}</p>
-          <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Fijos: S/ {recurringExpensesMonthly.toLocaleString()}</p>
+          <p style={{ fontSize: '20px', fontWeight: 'bold' }}>S/ {totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
+            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Diarios: S/ {data.expenses.toLocaleString()}</p>
+            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Fijos: S/ {data.recurringExpenses.toLocaleString()}</p>
+            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Deudas: S/ {data.debtsPaid.toLocaleString()}</p>
+          </div>
         </div>
       </div>
 
