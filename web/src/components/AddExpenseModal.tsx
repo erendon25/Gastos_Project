@@ -376,10 +376,18 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                             className="input-field"
                             value={description}
                             onChange={(e) => {
-                                setDescription(e.target.value);
-                                if (type !== 'income' && !presetCategory) {
-                                    const detected = getCategoryByText(e.target.value);
-                                    setCategory(detected.name);
+                                const val = e.target.value;
+                                setDescription(val);
+                                if (type !== 'income' && !presetCategory && val.length > 2) {
+                                    const normalizedText = val.toLowerCase();
+                                    const match = allCategories.find((cat: any) => {
+                                        const nameMatch = normalizedText.includes(cat.name.toLowerCase());
+                                        const keywordMatch = cat.keywords?.some((k: string) => normalizedText.includes(k.toLowerCase()));
+                                        return nameMatch || keywordMatch;
+                                    });
+                                    if (match) {
+                                        setCategory(match.name);
+                                    }
                                 }
                             }} required
                         />

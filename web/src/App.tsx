@@ -10,6 +10,9 @@ import PasswordSettings from './components/PasswordSettings'
 import AddExpenseModal from './components/AddExpenseModal'
 import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from './lib/firebase'
+import Onboarding from './components/Onboarding'
 
 const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) => void }> = ({ currentDate, onChange }) => {
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
@@ -63,6 +66,7 @@ function App() {
   const [draftExpense, setDraftExpense] = useState<any>(null)
   const [draftCategories, setDraftCategories] = useState<any>(null)
   const [draftProfile, setDraftProfile] = useState<any>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
@@ -72,8 +76,26 @@ function App() {
   useEffect(() => {
     getRedirectResult(auth).catch(console.error);
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      // Release UI immediately, don't wait for Firestore!
       setUser(currentUser);
       setLoading(false);
+
+      if (currentUser) {
+        getDoc(doc(db, 'users', currentUser.uid))
+          .then(userDoc => {
+            if (userDoc.exists() && userDoc.data().onboardingCompleted) {
+              setShowOnboarding(false);
+            } else {
+              setShowOnboarding(true);
+            }
+          })
+          .catch(err => {
+            console.error("Error checking onboarding state:", err);
+            setShowOnboarding(false);
+          });
+      } else {
+        setShowOnboarding(false);
+      }
     });
     return () => unsubscribe();
   }, [])
@@ -85,6 +107,8 @@ function App() {
   );
 
   if (!user) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}><Login onLogin={() => { }} /></div>
+
+  if (showOnboarding) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh', position: 'relative' }}><Onboarding onComplete={() => setShowOnboarding(false)} /></div>
 
   const renderContent = () => {
     switch (activeTab) {
