@@ -55,7 +55,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
             onEdit(item);
         } else if (info.offset.x < -100) {
             if (window.confirm('¿Eliminar este registro?')) {
-                onDelete(item.id);
+                onDelete(item);
             }
         }
     };
@@ -320,7 +320,21 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
     if (loading) return <p style={{ textAlign: 'center', color: '#666' }}>Cargando...</p>;
     if (transactions.length === 0) return <p style={{ textAlign: 'center', color: '#444', marginTop: '20px' }}>No hay registros.</p>;
 
-    const totalAmount = transactions.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+    const curNow = new Date();
+    const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    const isPastMonth = currentDate.getTime() < new Date(curNow.getFullYear(), curNow.getMonth(), 1).getTime();
+    const isCurrentMonth = currentDate.getMonth() === curNow.getMonth() && currentDate.getFullYear() === curNow.getFullYear();
+    const isFutureMonth = currentDate.getTime() > new Date(curNow.getFullYear(), curNow.getMonth(), 1).getTime();
+
+    const totalAmount = transactions.reduce((acc, item) => {
+        const amt = parseFloat(item.amount) || 0;
+        if (item._source === 'recurring' || item._source === 'debt') {
+            const isPaid = (item.paidMonths?.includes(mKey)) || (item.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (item.recurringDay || 1))));
+            if (isPaid) return acc + amt;
+            return acc;
+        }
+        return acc + amt;
+    }, 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

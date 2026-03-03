@@ -107,7 +107,8 @@ function App() {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setShowOnboarding(!userData.onboardingCompleted);
-            const userIsPro = userData.isPro || false;
+            const isCreator = currentUser.email === 'erickrendon18@gmail.com';
+            const userIsPro = isCreator || userData.isPro || false;
             const userTutorialCompleted = userData.tutorialCompleted || false;
             const userCurrency = userData.currency || { code: 'PEN', symbol: 'S/' };
 
@@ -119,12 +120,12 @@ function App() {
             }
           } else {
             setShowOnboarding(true);
-            setUser({ ...currentUser, isPro: false, tutorialCompleted: false, currency: { code: 'PEN', symbol: 'S/' } });
+            setUser({ ...currentUser, isPro: currentUser.email === 'erickrendon18@gmail.com', tutorialCompleted: false, currency: { code: 'PEN', symbol: 'S/' } });
           }
         } catch (err) {
           console.error("Error fetching user profile:", err);
           setShowOnboarding(false);
-          setUser({ ...currentUser, isPro: false });
+          setUser({ ...currentUser, isPro: currentUser.email === 'erickrendon18@gmail.com' });
         }
       } else {
         setShowOnboarding(false);

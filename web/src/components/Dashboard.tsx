@@ -96,8 +96,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
-    const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+    const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25, 0, 0, 0);
+    const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
     const isPastMonth = currentDate.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
     const isFutureMonth = currentDate.getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime();
@@ -153,8 +153,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         const d = doc.data();
         const amt = Number(d.amount) || 0;
         const dt = d.date?.toDate();
-        if (!dt || dt.getFullYear() < 2000) return;
-        if (dt <= fiscalEnd) {
+        const effectiveDate = dt || new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+        if (!dt || effectiveDate <= fiscalEnd) {
           const isPaid = (d.paidMonths?.includes(mKey)) || (d.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (d.recurringDay || 1))));
           if (isPaid) {
             if (isSubscriptionItem(d)) {
@@ -166,9 +167,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             }
           }
         }
+
         cumulative += (d.paidMonths?.length || 0) * amt;
         if (d.autoDebit) {
-          let chk = new Date(dt.getFullYear(), dt.getMonth(), 1);
+          let chk = new Date(effectiveDate.getFullYear(), effectiveDate.getMonth(), 1);
           const nowM = new Date(curNow.getFullYear(), curNow.getMonth(), 1);
           while (chk <= nowM) {
             if (!d.paidMonths?.includes(`${chk.getFullYear()}-${chk.getMonth()}`)) {
@@ -193,17 +195,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         const d = doc.data();
         const amt = Number(d.amount) || 0;
         const dt = d.date?.toDate();
-        if (!dt || dt.getFullYear() < 2000) return;
-        if (dt <= fiscalEnd) {
+        const effectiveDate = dt || new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+        if (!dt || effectiveDate <= fiscalEnd) {
           const isRcv = (d.paidMonths?.includes(mKey)) || (d.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (d.recurringDay || 1))));
           if (isRcv) {
             monthly += amt;
             incList.push({ name: d.description || d.category || 'Fijo', amt });
           }
         }
+
         cumulative += (d.paidMonths?.length || 0) * amt;
         if (d.autoDebit) {
-          let chk = new Date(dt.getFullYear(), dt.getMonth(), 1);
+          let chk = new Date(effectiveDate.getFullYear(), effectiveDate.getMonth(), 1);
           const nowM = new Date(curNow.getFullYear(), curNow.getMonth(), 1);
           while (chk <= nowM) {
             if (!d.paidMonths?.includes(`${chk.getFullYear()}-${chk.getMonth()}`)) {
@@ -258,7 +262,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const totalIncome = data.income + data.recurringIncome;
   const totalExpenses = data.expenses + data.recurringExpenses + subscriptionsMonthly + data.debtsPaid;
-  const balance = (data.cumulativeIncome + data.cumulativeIncomeRec) - (data.cumulativeExpenses + data.cumulativeExpensesRec + data.cumulativeDebts);
+  const balance = totalIncome - totalExpenses; // Used to be cumulative, but user expects monthly net balance based on income/expenses.
 
   const totalRemainingDebt = debts
     .filter(d => d.debtSubtype === 'loan')
@@ -266,8 +270,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
-  const fiscalStartLabel = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-  const fiscalEndLabel = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const fiscalStartLabel = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25);
+  const fiscalEndLabel = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24);
   const rangeLabel = `${fiscalStartLabel.getDate()} ${fiscalStartLabel.toLocaleString('es-ES', { month: 'short' })} - ${fiscalEndLabel.getDate()} ${fiscalEndLabel.toLocaleString('es-ES', { month: 'short' })}`;
 
   return (

@@ -25,8 +25,8 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
         if (!auth.currentUser) return;
 
         const uid = auth.currentUser.uid;
-        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
-        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25, 0, 0, 0);
+        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
 
         // 1. Fetch Categories
         const unsubCats = onSnapshot(collection(db, 'users', uid, 'categorias'), (snap) => {
