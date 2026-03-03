@@ -1,5 +1,4 @@
-import React from 'react';
-import { Home, Wallet, Repeat, Landmark, TrendingUp } from 'lucide-react';
+import { Home, Wallet, Repeat, Landmark, TrendingUp, Tv } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = ({ activeTab, onChange }) => {
@@ -7,6 +6,7 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
         { id: 'home', icon: Home, label: 'Inicio' },
         { id: 'expenses', icon: Wallet, label: 'Gastos' },
         { id: 'recurring', icon: Repeat, label: 'Fijos' },
+        { id: 'subscriptions', icon: Tv, label: 'Digital' },
         { id: 'debts', icon: Landmark, label: 'Deudas' },
         { id: 'income', icon: TrendingUp, label: 'Ingresos' },
     ];

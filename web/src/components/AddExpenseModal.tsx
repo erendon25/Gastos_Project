@@ -457,13 +457,15 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                                     </div>
                                 )}
 
-                                <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
-                                    {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
-                                        <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
+                                {!presetCategory?.includes('Ocio') && (
+                                    <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
+                                        {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
+                                            <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
 
