@@ -59,7 +59,7 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
             ref={containerRef}
             style={{
                 position: 'fixed',
-                bottom: 'env(safe-area-inset-bottom, 16px)',
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: 'calc(100% - 32px)',

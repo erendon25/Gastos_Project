@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, Landmark, X, PiggyBank, Pencil, Check, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, Landmark, X, PiggyBank, Pencil, Check, Zap, Download } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import RecentTransactions from './RecentTransactions';
 import CategoryBudget from './CategoryBudget';
 import { auth, db } from '../lib/firebase';
@@ -280,12 +281,43 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
   const fiscalEndLabel = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24);
   const rangeLabel = `${fiscalStartLabel.getDate()} ${fiscalStartLabel.toLocaleString('es-ES', { month: 'short' })} - ${fiscalEndLabel.getDate()} ${fiscalEndLabel.toLocaleString('es-ES', { month: 'short' })}`;
 
+  const exportToCSV = () => {
+    const headers = ['Tipo', 'Categoria/Descripcion', 'Monto'];
+    const rows: any[][] = [];
+
+    Object.entries(incomeByCategory).forEach(([cat, amt]) => rows.push(['Ingreso Variable', cat, amt]));
+    recurringIncomeList.forEach(inc => rows.push(['Ingreso Fijo', inc.name, inc.amt]));
+    Object.entries(expensesByCategory).forEach(([cat, amt]) => rows.push(['Gasto Diario', cat, amt]));
+    recurringExpensesList.forEach(rec => rows.push(['Gasto Fijo', rec.name, rec.amt]));
+    subscriptionsList.forEach(sub => rows.push(['Suscripcion', sub.name, sub.amt]));
+    debtsList.forEach(debt => rows.push(['Deuda/Seguro', debt.name, debt.amt]));
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+      + headers.join(",") + "\n"
+      + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    // Remove spaces from rangeLabel for cleaner filename
+    link.setAttribute("download", `Flux_Reporte_${currentDate.getMonth() + 1}_${currentDate.getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const chartColors = ['#fca311', '#818cf8', '#4ade80', '#f87171', '#a78bfa', '#f472b6', '#34d399'];
+  const expensesChartData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
   return (
     <div className="dashboard-container" style={{ padding: '24px 20px 150px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Branding & Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1px' }}>FLUX</h1>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button onClick={exportToCSV} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Exportar a CSV">
+            <Download size={20} color="#666" />
+          </button>
           <button onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <Settings size={20} color="#666" />
           </button>
@@ -488,6 +520,52 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
           );
         })()
       }
+
+      {/* Visual Analysis Chart (PieChart) */}
+      {expensesChartData.length > 0 && (
+        <div className="premium-card" style={{ padding: '20px', background: '#111', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
+          <div style={{ height: '220px', position: 'relative' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expensesChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {expensesChartData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
+                  contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', color: '#fff' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center Label */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+              <p style={{ fontSize: '10px', color: '#666' }}>Total Var.</p>
+              <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
+            </div>
+          </div>
+          {/* Legend */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
+            {expensesChartData.slice(0, 5).map((entry, index) => (
+              <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
+                <span style={{ fontSize: '11px', color: '#aaa' }}>{entry.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Category Budgets & Swipes */}
       <div style={{ margin: '8px 0' }}>

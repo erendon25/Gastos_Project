@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot, query, where, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
 
 interface CategoryBudgetProps {
     currentDate: Date;
@@ -192,10 +193,21 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
                         {/* Content */}
                         <div style={{ zIndex: 1, textAlign: 'center' }}>
+                            {percent >= 100 && hasBudget && (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    style={{ position: 'absolute', top: 8, right: 8 }}
+                                >
+                                    <AlertTriangle size={16} color="#ef4444" />
+                                </motion.div>
+                            )}
                             <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>{cat.emoji}</span>
                             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{spent.toLocaleString()}</p>
                             {hasBudget && (
-                                <p style={{ fontSize: '10px', color: '#666' }}>{Math.round(percent)}% de {budget}</p>
+                                <p style={{ fontSize: '10px', color: percent >= 100 ? '#ef4444' : '#666', fontWeight: percent >= 100 ? 'bold' : 'normal' }}>
+                                    {Math.round(percent)}% de {budget}
+                                </p>
                             )}
                             <p style={{ fontSize: '10px', color: '#444', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</p>
                         </div>
