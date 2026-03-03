@@ -8,9 +8,10 @@ import CreateCategoryModal from './CreateCategoryModal';
 interface CategorySettingsProps {
     draftData?: any;
     onUpdateDraft?: (data: any) => void;
+    user?: any;
 }
 
-const CategorySettings: React.FC<CategorySettingsProps> = () => {
+const CategorySettings: React.FC<CategorySettingsProps> = ({ user }) => {
     const [userCategories, setUserCategories] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -48,7 +49,11 @@ const CategorySettings: React.FC<CategorySettingsProps> = () => {
 
             <AnimatePresence>
                 {showCreateModal && (
-                    <CreateCategoryModal onClose={() => setShowCreateModal(false)} />
+                    <CreateCategoryModal
+                        onClose={() => setShowCreateModal(false)}
+                        user={user}
+                        categoriesCount={userCategories.length}
+                    />
                 )}
             </AnimatePresence>
 

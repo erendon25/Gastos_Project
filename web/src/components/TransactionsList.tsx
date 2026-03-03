@@ -4,14 +4,16 @@ import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, deleteDo
 import { CATEGORIES } from '../lib/categories';
 import { CheckCircle, Circle, Calendar, Info, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { isSubscriptionItem } from '../lib/subscriptionUtils';
 import AddExpenseModal from './AddExpenseModal';
 
 interface TransactionsListProps {
     type?: 'expense' | 'income' | 'recurring' | 'debt';
     currentDate: Date;
+    currency?: { code: string, symbol: string };
 }
 
-const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }: { item: any; type: string; currentDate: Date; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void }) => {
+const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, currency = { code: 'PEN', symbol: 'S/' } }: { item: any; type: string; currentDate: Date; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void, currency?: { code: string, symbol: string } }) => {
     const x = useMotionValue(0);
 
     // Transform background colors and icons based on drag direction
@@ -35,13 +37,13 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
     // Monthly status for recurring items and debts
     const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
     const isDebt = type === 'debt' || item.collection?.includes('prestamos');
-    const isMonthPassed = currentDate.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
-
     let isAutoPaid = false;
     if (item.autoDebit || (isDebt && item.debtSubtype === 'insurance')) {
-        if (isMonthPassed) isAutoPaid = true;
-        else if (isCurrentMonth) isAutoPaid = now.getDate() >= (item.recurringDay || 1);
+        const rd = item.recurringDay || 1;
+        const chargeYear = rd >= 25 ? (currentDate.getMonth() === 0 ? currentDate.getFullYear() - 1 : currentDate.getFullYear()) : currentDate.getFullYear();
+        const chargeMonth = rd >= 25 ? (currentDate.getMonth() === 0 ? 11 : currentDate.getMonth() - 1) : currentDate.getMonth();
+        const chargeDate = new Date(chargeYear, chargeMonth, rd);
+        if (now.getTime() >= chargeDate.getTime()) isAutoPaid = true;
     }
 
     const isPaid = (type === 'recurring' || item.collection?.includes('recurrentes') || isDebt)
@@ -135,7 +137,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
                             fontSize: '16px', fontWeight: '900',
                             color: isPaid === false ? (isPastDue ? '#ef4444' : '#666') : (isIncome ? 'var(--income-color)' : '#fff')
                         }}>
-                            {isIncome ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
+                            {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                         </p>
                     </div>
                 </div>
@@ -167,7 +169,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
     );
 };
 
-const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', currentDate }) => {
+const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', currentDate, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -177,10 +179,10 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
         setLoading(true);
 
         const uid = auth.currentUser.uid;
-        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
-        const startTimestamp = Timestamp.fromDate(startOfMonth);
-        const endTimestamp = Timestamp.fromDate(endOfMonth);
+        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25);
+        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
+        const startTimestamp = Timestamp.fromDate(fiscalStart);
+        const endTimestamp = Timestamp.fromDate(fiscalEnd);
 
         let primaryCollection = 'gastos';
         let secondaryCollection: string | null = null;
@@ -202,13 +204,15 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
 
             // Filter secondary docs (recurring/debts) if they are outside the selected month scope
             combined = combined.filter((d: any) => {
+                if (type === 'recurring' && isSubscriptionItem(d)) return false;
+
                 if (d._source === 'recurring' || d._source === 'debt') {
                     if (d._source === 'debt') {
                         if (!d.startDate || !d.dueDate) return true;
-                        return d.startDate.toDate() <= endOfMonth && d.dueDate.toDate() >= startOfMonth;
+                        return d.startDate.toDate() <= fiscalEnd && d.dueDate.toDate() >= fiscalStart;
                     } else {
                         // Recurring check: showed if created on or before this month
-                        return !d.date || d.date.toDate() <= endOfMonth;
+                        return !d.date || d.date.toDate() <= fiscalEnd;
                     }
                 }
                 return true; // Regular items are already filtered by query
@@ -330,7 +334,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                 alignItems: 'center'
             }}>
                 <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>Total {type === 'income' ? 'Ingresos' : 'Gastos'} {type === 'recurring' ? 'Fijos' : ''}</span>
-                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>S/ {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>{currency.symbol} {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <AnimatePresence>
@@ -343,6 +347,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                         onEdit={setEditingItem}
                         onDelete={handleDelete}
                         togglePaid={togglePaid}
+                        currency={currency}
                     />
                 ))}
             </AnimatePresence>
@@ -351,7 +356,8 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                 <AddExpenseModal
                     onClose={() => setEditingItem(null)}
                     editItem={editingItem}
-                    editType={type}
+                    editType={editingItem.collection === 'ingresos' ? 'income' : 'expense'}
+                    currency={currency}
                 />
             )}
         </div>

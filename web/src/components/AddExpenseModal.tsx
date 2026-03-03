@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, ChevronRight, Repeat, CheckCircle, Circle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import SpeechButton from './SpeechButton';
 import { CATEGORIES as DEFAULT_CATEGORIES, getCategoryByText } from '../lib/categories';
@@ -13,6 +13,8 @@ interface AddExpenseModalProps {
     presetCategory?: string | null;
     draftData?: any;
     onUpdateDraft?: (data: any) => void;
+    user?: any;
+    currency?: { code: string, symbol: string };
 }
 
 // Helper to avoid timezone shifts when parsing YYYY-MM-DD
@@ -29,7 +31,7 @@ const formatLocalDate = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType, presetCategory, draftData, onUpdateDraft }) => {
+const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType, presetCategory, draftData, onUpdateDraft, user, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [amount, setAmount] = useState(editItem ? editItem.amount.toString() : (draftData?.amount || ''));
     const [description, setDescription] = useState(editItem ? editItem.description : (draftData?.description || ''));
     const [type, setType] = useState<'expense' | 'income' | 'debt'>(() => {
@@ -221,13 +223,31 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 await updateDoc(docRef, data);
             } else {
                 let collectionName = 'gastos';
+                const isPro = user?.isPro || false;
+
                 if (type === 'income') {
                     collectionName = isRecurring ? 'ingresos_recurrentes' : 'ingresos';
                 }
                 else if (type === 'debt') {
+                    if (!isPro) {
+                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'prestamos')));
+                        if (snap.size >= 1) {
+                            alert('Límite de la versión Gratis alcanzado: Solo puedes tener 1 deuda o seguro. ¡Actualízate a Flux PRO para deudas ilimitadas!');
+                            return;
+                        }
+                    }
                     collectionName = 'prestamos';
                 }
-                else if (isRecurring) collectionName = 'gastos_recurrentes';
+                else if (isRecurring) {
+                    if (!isPro) {
+                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
+                        if (snap.size >= 3) {
+                            alert('Límite de la versión Gratis alcanzado: Solo puedes tener 3 suscripciones o gastos fijos automatizados. ¡Pásate a Flux PRO!');
+                            return;
+                        }
+                    }
+                    collectionName = 'gastos_recurrentes';
+                }
 
                 data.date = serverTimestamp();
                 await addDoc(collection(db, 'users', auth.currentUser.uid, collectionName), data);
@@ -445,11 +465,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                         <div>
                                             <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Monto Préstamo Total</label>
-                                            <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="S/ 0.00" />
+                                            <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder={`${currency.symbol} 0.00`} />
                                         </div>
                                         <div>
                                             <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Saldo Restante</label>
-                                            <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder="S/ 0.00" />
+                                            <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder={`${currency.symbol} 0.00`} />
                                         </div>
                                     </div>
                                 )}
@@ -505,13 +525,15 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                                     </div>
                                 )}
 
-                                <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
-                                    {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
-                                        <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
+                                {!presetCategory?.includes('Ocio') && (
+                                    <div onClick={() => setAutoDebit(!autoDebit)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', background: autoDebit ? (type === 'income' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(129, 138, 248, 0.1)') : '#1c1c1e', border: '1px solid', borderColor: autoDebit ? (type === 'income' ? '#4ade80' : '#818cf8') : '#2c2c2e', cursor: 'pointer' }}>
+                                        {autoDebit ? <CheckCircle size={20} color={type === 'income' ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#666" />}
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: autoDebit ? '#fff' : '#666' }}>{type === 'income' ? 'Ingreso Automático' : 'Pago Automático'}</p>
+                                            <p style={{ fontSize: '11px', color: '#666' }}>{autoDebit ? 'Se resta/suma solo sin confirmar' : 'Solo se restará si le das al "check"'}</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
 

@@ -6,7 +6,7 @@ import { Edit2, Trash2, TrendingUp, CheckCircle, Circle } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import AddExpenseModal from './AddExpenseModal';
 
-const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid, onNavigate }: { item: any; currentDate: Date; onEdit: (item: any) => void; onDelete: (item: any) => void; onTogglePaid: (e: any, item: any) => void; onNavigate?: (view: string) => void }) => {
+const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid, onNavigate, currency = { code: 'PEN', symbol: 'S/' } }: { item: any; currentDate: Date; onEdit: (item: any) => void; onDelete: (item: any) => void; onTogglePaid: (e: any, item: any) => void; onNavigate?: (view: string) => void; currency?: { code: string, symbol: string } }) => {
     const x = useMotionValue(0);
     const background = useTransform(x, [-100, 0, 100], ["#ef4444", "rgba(255, 255, 255, 0)", "#3b82f6"]);
     const opacityLeft = useTransform(x, [50, 100], [0, 1]);
@@ -74,7 +74,7 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <p style={{ fontWeight: 'bold', fontSize: '14px', color: isPaid === false && item.collection?.includes('recurrentes') ? '#333' : (isIncome ? 'var(--income-color)' : '#fff') }}>
-                        {isIncome ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
+                        {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                     </p>
                 </div>
             </motion.div>
@@ -82,7 +82,7 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
     );
 };
 
-const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNavigate }) => {
+const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void; currency?: { code: string, symbol: string } }> = ({ onNavigate, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -176,6 +176,7 @@ const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({
                         onDelete={handleDelete}
                         onTogglePaid={togglePaid}
                         onNavigate={onNavigate}
+                        currency={currency}
                     />
                 ))}
             </AnimatePresence>
@@ -185,6 +186,7 @@ const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({
                     onClose={() => setEditingItem(null)}
                     editItem={editingItem}
                     editType={editingItem.collection === 'ingresos' ? 'income' : 'expense'}
+                    currency={currency}
                 />
             )}
         </div>

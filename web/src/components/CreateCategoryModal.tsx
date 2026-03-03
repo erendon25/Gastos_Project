@@ -7,9 +7,11 @@ import { getEmojiForCategory } from '../lib/categories';
 
 interface CreateCategoryModalProps {
     onClose: () => void;
+    user?: any;
+    categoriesCount?: number;
 }
 
-const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose }) => {
+const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose, user, categoriesCount = 0 }) => {
     const [name, setName] = useState('');
     const [emoji, setEmoji] = useState('🍕');
     const [saving, setSaving] = useState(false);
@@ -28,6 +30,13 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose }) =>
 
     const handleSave = async () => {
         if (!name.trim() || !auth.currentUser) return;
+
+        const isPro = user?.isPro || false;
+        if (!isPro && categoriesCount >= 5) {
+            alert("Has alcanzado el límite de 5 categorías para usuarios gratuitos. ¡Actualiza a PRO para crear categorías ilimitadas!");
+            return;
+        }
+
         setSaving(true);
         try {
             await addDoc(collection(db, 'users', auth.currentUser.uid, 'categorias'), {

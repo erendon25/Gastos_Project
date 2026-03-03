@@ -1,18 +1,35 @@
 import React, { useState, useEffect } from 'react'
-import { auth } from '../lib/firebase'
-import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
-import { Lock, User, Check, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { auth, db } from '../lib/firebase'
+import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth'
+import { Lock, User, Check, AlertCircle, Eye, EyeOff, Trash2, Coins, ChevronDown } from 'lucide-react'
+import { doc, deleteDoc, collection, getDocs, updateDoc } from 'firebase/firestore'
 
 interface PasswordSettingsProps {
     draftData?: any;
     onUpdateDraft?: (data: any) => void;
+    user?: any;
+    onCurrencyChange?: (currency: { code: string, symbol: string }) => void;
 }
 
-const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdateDraft }) => {
+const currencies = [
+    { code: 'PEN', symbol: 'S/', name: 'Sol Peruano' },
+    { code: 'USD', symbol: '$', name: 'Dólar Estadounidense' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'MXN', symbol: '$', name: 'Peso Mexicano' },
+    { code: 'ARS', symbol: '$', name: 'Peso Argentino' },
+    { code: 'CLP', symbol: '$', name: 'Peso Chileno' },
+    { code: 'COP', symbol: '$', name: 'Peso Colombiano' },
+    { code: 'BRL', symbol: 'R$', name: 'Real Brasileño' },
+    { code: 'JPY', symbol: '¥', name: 'Yen Japonés' },
+    { code: 'GBP', symbol: '£', name: 'Libra Esterlina' }
+];
+
+const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdateDraft, user, onCurrencyChange }) => {
     const [currentPassword, setCurrentPassword] = useState(draftData?.currentPassword || '')
     const [newPassword, setNewPassword] = useState(draftData?.newPassword || '')
     const [confirmPassword, setConfirmPassword] = useState(draftData?.confirmPassword || '')
     const [displayName, setDisplayName] = useState(draftData?.displayName || (auth.currentUser?.displayName || ''))
+    const [selectedCurrency, setSelectedCurrency] = useState(user?.currency?.code || 'PEN')
     const [loading, setLoading] = useState(false)
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
     const [showPasswords, setShowPasswords] = useState(false)
@@ -35,6 +52,16 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
 
         try {
             await updateProfile(auth.currentUser, { displayName })
+
+            // Actualizar moneda en Firestore
+            const newCurrencyObj = currencies.find(c => c.code === selectedCurrency);
+            if (newCurrencyObj) {
+                await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+                    currency: newCurrencyObj
+                });
+                if (onCurrencyChange) onCurrencyChange(newCurrencyObj);
+            }
+
             setStatus({ type: 'success', message: 'Perfil actualizado correctamente' })
         } catch (error: any) {
             setStatus({ type: 'error', message: error.message })
@@ -86,6 +113,49 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
         }
     }
 
+    const handleDeleteAccount = async () => {
+        if (!auth.currentUser) return;
+
+        const confirmDelete = window.confirm(
+            "⚠️ ¿ESTÁS SEGURO?\n\nEsta acción eliminará permanentemente tu cuenta y todos tus datos (gastos, ingresos, ahorros). No se puede deshacer.\n\nSi decides volver a registrarte después, empezarás de cero."
+        );
+
+        if (!confirmDelete) return;
+
+        setLoading(true);
+        setStatus(null);
+
+        try {
+            const uid = auth.currentUser.uid;
+
+            // 1. Eliminar colecciones
+            const subcollections = ['gastos', 'ingresos', 'gastos_recurrentes', 'ingresos_recurrentes', 'categorias', 'prestamos'];
+            for (const sub of subcollections) {
+                const q = await getDocs(collection(db, 'users', uid, sub));
+                for (const d of q.docs) {
+                    await deleteDoc(doc(db, 'users', uid, sub, d.id));
+                }
+            }
+
+            // 2. Eliminar documento de usuario
+            await deleteDoc(doc(db, 'users', uid));
+
+            // 3. Eliminar de Auth
+            await deleteUser(auth.currentUser);
+
+            alert("Tu cuenta ha sido eliminada correctamente.");
+        } catch (error: any) {
+            console.error("Error al eliminar cuenta:", error);
+            let msg = 'Error al eliminar la cuenta.';
+            if (error.code === 'auth/requires-recent-login') {
+                msg = 'Por seguridad, debes haber iniciado sesión recientemente para eliminar tu cuenta. Por favor, sal y vuelve a entrar.';
+            }
+            setStatus({ type: 'error', message: msg });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Perfil */}
@@ -103,6 +173,37 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                         onChange={(e) => setDisplayName(e.target.value)}
                         style={{ background: '#0a0a0a' }}
                     />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Coins size={12} /> MONEDA PRINCIPAL
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                        <select
+                            value={selectedCurrency}
+                            onChange={(e) => setSelectedCurrency(e.target.value)}
+                            style={{
+                                width: '100%',
+                                background: '#0a0a0a',
+                                color: '#fff',
+                                border: '1px solid #333',
+                                borderRadius: '12px',
+                                padding: '12px',
+                                fontSize: '14px',
+                                appearance: 'none',
+                                cursor: 'pointer',
+                                outline: 'none'
+                            }}
+                        >
+                            {currencies.map(c => (
+                                <option key={c.code} value={c.code} style={{ background: '#111' }}>
+                                    {c.name} ({c.symbol})
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
+                    </div>
                 </div>
                 <button type="submit" className="btn-primary" disabled={loading} style={{
                     padding: '12px',
@@ -209,6 +310,43 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                     {loading ? 'ACTUALIZANDO...' : 'CAMBIAR CONTRASEÑA'}
                 </button>
             </form>
+
+            {/* Peligro: Eliminar Cuenta */}
+            <div className="premium-card" style={{
+                padding: '24px',
+                background: 'rgba(239, 68, 68, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                border: '1px solid rgba(239, 68, 68, 0.1)',
+                marginTop: '12px'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#ef4444' }}>
+                    <Trash2 size={20} />
+                    <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>ZONA DE PELIGRO</h3>
+                </div>
+                <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>
+                    Al eliminar tu cuenta, todos tus datos financieros serán borrados de forma permanente. No podrás recuperar esta información.
+                </p>
+                <button
+                    onClick={handleDeleteAccount}
+                    disabled={loading}
+                    style={{
+                        padding: '16px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '16px',
+                        fontSize: '14px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        transition: 'opacity 0.2s',
+                        opacity: loading ? 0.5 : 1
+                    }}
+                >
+                    {loading ? 'PROCESANDO...' : 'ELIMINAR MI CUENTA'}
+                </button>
+            </div>
         </div>
     )
 }
