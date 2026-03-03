@@ -51,19 +51,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
   const [breakdownType, setBreakdownType] = useState<'income' | 'expense' | 'balance' | null>(null);
 
   // Savings state
-  const savingsKey = `savings_goal_${auth.currentUser?.uid}`;
-  const [savingsGoal, setSavingsGoal] = useState<number>(() => {
-    const stored = localStorage.getItem(savingsKey);
-    return stored ? parseFloat(stored) : 0;
-  });
+  const [savingsGoal, setSavingsGoal] = useState<number>(0);
   const [editingSavings, setEditingSavings] = useState(false);
   const [savingsInput, setSavingsInput] = useState('');
+
+  // Sync savings safely when Firebase auth populates
+  useEffect(() => {
+    if (auth.currentUser?.uid) {
+      const stored = localStorage.getItem(`savings_goal_${auth.currentUser.uid}`);
+      if (stored) setSavingsGoal(parseFloat(stored));
+    }
+  }, [auth.currentUser?.uid]);
 
   const handleSaveSavings = () => {
     const val = parseFloat(savingsInput);
     if (!isNaN(val) && val >= 0) {
       setSavingsGoal(val);
-      localStorage.setItem(savingsKey, String(val));
+      if (auth.currentUser?.uid) {
+        localStorage.setItem(`savings_goal_${auth.currentUser.uid}`, String(val));
+      }
     }
     setEditingSavings(false);
     setSavingsInput('');
@@ -98,9 +104,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
     const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25, 0, 0, 0);
     const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
-    const isPastMonth = currentDate.getTime() < new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
-    const isFutureMonth = currentDate.getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const isPastMonth = currentDate.getFullYear() < now.getFullYear() || (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() < now.getMonth());
+    const isCurrentMonth = currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
+    const isFutureMonth = currentDate.getFullYear() > now.getFullYear() || (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() > now.getMonth());
 
     const unsubExp = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'gastos')), (snap) => {
       let monthly = 0, total = 0;

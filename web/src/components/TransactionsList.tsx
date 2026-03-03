@@ -322,9 +322,9 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
 
     const curNow = new Date();
     const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-    const isPastMonth = currentDate.getTime() < new Date(curNow.getFullYear(), curNow.getMonth(), 1).getTime();
-    const isCurrentMonth = currentDate.getMonth() === curNow.getMonth() && currentDate.getFullYear() === curNow.getFullYear();
-    const isFutureMonth = currentDate.getTime() > new Date(curNow.getFullYear(), curNow.getMonth(), 1).getTime();
+    const isPastMonth = currentDate.getFullYear() < curNow.getFullYear() || (currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() < curNow.getMonth());
+    const isCurrentMonth = currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() === curNow.getMonth();
+    const isFutureMonth = currentDate.getFullYear() > curNow.getFullYear() || (currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() > curNow.getMonth());
 
     const totalAmount = transactions.reduce((acc, item) => {
         const amt = parseFloat(item.amount) || 0;
