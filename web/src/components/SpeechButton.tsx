@@ -62,7 +62,7 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({ onResult }) => {
       }}
     >
       {isListening ? (
-        <MicOff size={20} color="#ffffff" />
+        <MicOff size={20} color="var(--text-primary)" />
       ) : (
         <Mic size={20} color="var(--text-secondary)" />
       )}

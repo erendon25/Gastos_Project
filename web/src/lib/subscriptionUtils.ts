@@ -1,7 +1,7 @@
 export const SERVICE_LOGOS: Record<string, { emoji: string; color: string; keywords: string[] }> = {
     netflix: { emoji: '🎬', color: '#E50914', keywords: ['netflix'] },
     spotify: { emoji: '🎵', color: '#1DB954', keywords: ['spotify'] },
-    hbo: { emoji: '📺', color: '#000000', keywords: ['hbo', 'max'] },
+    hbo: { emoji: '📺', color: 'var(--bg-color)', keywords: ['hbo', 'max'] },
     antigravity: { emoji: '🚀', color: '#818cf8', keywords: ['antigravity'] },
     disney: { emoji: '🏰', color: '#006E99', keywords: ['disney'] },
     youtube: { emoji: '📹', color: '#FF0000', keywords: ['youtube'] },

@@ -66,17 +66,17 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose, user
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: '#111',
+                background: 'var(--card-bg-light)',
                 zIndex: 3000,
                 display: 'flex',
                 flexDirection: 'column',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 paddingTop: 'env(safe-area-inset-top)',
             }}
         >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 20px' }}>
-                <button onClick={onClose} style={{ background: '#222', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', cursor: 'pointer' }}>
+                <button onClick={onClose} style={{ background: 'var(--border-color)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                     <X size={20} />
                 </button>
             </div>
@@ -119,7 +119,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose, user
                             style={{
                                 background: 'transparent',
                                 border: 'none',
-                                color: '#fff', // Real emoji color
+                                color: 'var(--text-primary)', // Real emoji color
                                 fontSize: '56px',
                                 outline: 'none',
                                 textAlign: 'center',
@@ -141,7 +141,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose, user
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: '#fff',
+                            color: 'var(--text-primary)',
                             fontSize: '36px',
                             fontWeight: '800',
                             textAlign: 'center',
@@ -155,8 +155,8 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({ onClose, user
                         onClick={handleSave}
                         disabled={saving || !name.trim()}
                         style={{
-                            background: '#222',
-                            color: name.trim() ? '#fff' : '#666',
+                            background: 'var(--border-color)',
+                            color: name.trim() ? 'var(--text-primary)' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '16px',
                             padding: '16px',

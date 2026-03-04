@@ -9,6 +9,7 @@ import CategorySettings from './components/CategorySettings'
 import PasswordSettings from './components/PasswordSettings'
 import AddExpenseModal from './components/AddExpenseModal'
 import SubscriptionsSection from './components/SubscriptionsSection'
+import Superadmin from './components/Superadmin'
 import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { doc, getDoc } from 'firebase/firestore'
@@ -16,6 +17,23 @@ import { db } from './lib/firebase'
 import Onboarding from './components/Onboarding'
 import TutorialOverlay from './components/TutorialOverlay'
 import UpgradeModal from './components/UpgradeModal'
+import InstallPWATutorial from './components/InstallPWATutorial'
+
+// Inicializar el tema local
+const storedTheme = localStorage.getItem('theme');
+if (storedTheme === 'light') {
+  document.body.classList.add('light-theme');
+} else {
+  document.body.classList.remove('light-theme');
+}
+
+// Capturar link de referidos
+const urlParams = new URLSearchParams(window.location.search);
+const refCode = urlParams.get('ref');
+if (refCode) {
+  localStorage.setItem('fluxRefCode', refCode);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) => void }> = ({ currentDate, onChange }) => {
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
@@ -25,20 +43,20 @@ const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) =
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      background: 'rgba(255,255,255,0.03)',
+      background: 'var(--glass-bg)',
       padding: '12px 16px',
       borderRadius: '16px',
-      border: '1px solid rgba(255,255,255,0.05)',
+      border: '1px solid var(--glass-border)',
       margin: '0 20px 20px 20px'
     }}>
-      <button onClick={() => onChange(-1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={() => onChange(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <ChevronLeft size={20} />
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Calendar size={16} color="#818cf8" />
         <span style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'capitalize' }}>{monthYearLabel}</span>
       </div>
-      <button onClick={() => onChange(1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={() => onChange(1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <ChevronRight size={20} />
       </button>
     </div>
@@ -64,7 +82,7 @@ function App() {
   const [splashDone, setSplashDone] = useState(false)
   const [tabChanging, setTabChanging] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'categories' | 'profile'>('categories')
+  const [settingsTab, setSettingsTab] = useState<'categories' | 'profile' | 'admin'>('categories')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
@@ -117,17 +135,32 @@ function App() {
 
       if (currentUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userRef);
           if (userDoc.exists()) {
             const userData = userDoc.data();
+
+            // Sincronizar datos básicos si faltan o han cambiado
+            if (userData.email !== currentUser.email || userData.displayName !== currentUser.displayName) {
+              import('firebase/firestore').then(({ updateDoc }) => {
+                updateDoc(userRef, {
+                  email: currentUser.email || '',
+                  displayName: currentUser.displayName || '',
+                  photoURL: currentUser.photoURL || ''
+                }).catch(console.error);
+              });
+            }
+
             setShowOnboarding(!userData.onboardingCompleted);
             const isCreator = currentUser.email === 'erickrendon18@gmail.com';
-            const userIsPro = isCreator || userData.isPro || false;
+            const proUntil = userData.proUntil ? new Date(userData.proUntil) : null;
+            const validProUntil = proUntil && proUntil > new Date();
+            const userIsPro = isCreator || userData.isPro || validProUntil;
             const userTutorialCompleted = userData.tutorialCompleted || false;
             const userCurrency = userData.currency || { code: 'PEN', symbol: 'S/' };
 
             setCurrency(userCurrency);
-            setUser({ ...currentUser, isPro: userIsPro, tutorialCompleted: userTutorialCompleted, currency: userCurrency });
+            setUser({ ...currentUser, isPro: userIsPro, tutorialCompleted: userTutorialCompleted, currency: userCurrency, hasAddedFirstExpense: userData.hasAddedFirstExpense });
 
             if (!userTutorialCompleted && userData.onboardingCompleted) {
               setShowTutorial(true);
@@ -158,7 +191,7 @@ function App() {
     <div style={{
       maxWidth: '450px', margin: '0 auto', height: '100vh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: '#0a0a0a', color: '#fff', position: 'relative', overflow: 'hidden'
+      background: 'var(--bg-color)', color: 'var(--text-primary)', position: 'relative', overflow: 'hidden'
     }}>
       {/* Background glow */}
       <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(40px)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
@@ -166,14 +199,14 @@ function App() {
       {/* Logo area */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', animation: 'fadeSlideUp 0.6s ease forwards', opacity: 0 }}>
         <div style={{ fontSize: '64px', lineHeight: 1, filter: 'drop-shadow(0 0 24px rgba(255,255,255,0.3))' }}>⚡</div>
-        <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-3px', color: '#fff', margin: 0 }}>FLUX</h1>
-        <p style={{ fontSize: '13px', color: '#444', letterSpacing: '3px', textTransform: 'uppercase', margin: 0 }}>Finanza Inteligente</p>
+        <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-3px', color: 'var(--text-primary)', margin: 0 }}>FLUX</h1>
+        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', letterSpacing: '3px', textTransform: 'uppercase', margin: 0 }}>Finanza Inteligente</p>
       </div>
 
       {/* Progress bar */}
       <div style={{ position: 'absolute', bottom: '80px', width: '120px' }}>
         <div style={{ height: '2px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: '#fff', borderRadius: '2px', animation: 'progress-fill 1.6s ease-out forwards' }} />
+          <div style={{ height: '100%', background: 'var(--text-primary)', borderRadius: '2px', animation: 'progress-fill 1.6s ease-out forwards' }} />
         </div>
       </div>
 
@@ -225,7 +258,7 @@ function App() {
           <div style={{ padding: '24px 0' }}>
             <div style={{ padding: '0 20px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Diarios</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Historial de consumos normales.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Historial de consumos normales.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
@@ -238,7 +271,7 @@ function App() {
           <div style={{ padding: '24px 0' }}>
             <div style={{ padding: '0 20px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Fijos</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Alquiler, servicios y mensualidades.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Alquiler, servicios y mensualidades.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
@@ -251,7 +284,7 @@ function App() {
           <div style={{ padding: '24px 0' }}>
             <div style={{ padding: '0 20px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Deudas y Seguros</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Préstamos bancarios y cronogramas de pago.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Préstamos bancarios y cronogramas de pago.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
@@ -264,7 +297,7 @@ function App() {
           <div style={{ padding: '24px 0' }}>
             <div style={{ padding: '0 20px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Ingresos</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Tus entradas de dinero.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Tus entradas de dinero.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
@@ -277,7 +310,7 @@ function App() {
           <div style={{ padding: '24px 0' }}>
             <div style={{ padding: '0 20px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Suscripciones</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Gestiona tus servicios digitales y membresías.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Gestiona tus servicios digitales y membresías.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <SubscriptionsSection currentDate={currentDate} user={user} onUpgrade={() => setShowUpgrade(true)} currency={currency} />
@@ -295,7 +328,7 @@ function App() {
       minHeight: '100vh',
       position: 'relative',
       background: 'var(--bg-color)',
-      color: '#fff'
+      color: 'var(--text-primary)'
     }}>
 
       {/* Settings Modal (Categorías) */}
@@ -329,27 +362,36 @@ function App() {
             <div style={{ padding: '24px 20px 0 20px', flexShrink: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: '#222', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
                   <X size={20} />
                 </button>
               </div>
 
-              <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: '#111', padding: '4px', borderRadius: '14px' }}>
+              <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--card-bg-light)', padding: '4px', borderRadius: '14px' }}>
                 <button
                   onClick={() => setSettingsTab('categories')}
                   style={{
                     flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                    background: settingsTab === 'categories' ? '#222' : 'transparent',
-                    color: settingsTab === 'categories' ? '#fff' : '#666',
+                    background: settingsTab === 'categories' ? 'var(--border-color)' : 'transparent',
+                    color: settingsTab === 'categories' ? 'var(--text-primary)' : 'var(--text-secondary)',
                     transition: 'all 0.2s'
                   }}>Categorías</button>
                 <button
                   onClick={() => setSettingsTab('profile')}
                   style={{
                     flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                    background: settingsTab === 'profile' ? '#222' : 'transparent',
-                    color: settingsTab === 'profile' ? '#fff' : '#666'
+                    background: settingsTab === 'profile' ? 'var(--border-color)' : 'transparent',
+                    color: settingsTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)'
                   }}>Perfil & Seguridad</button>
+                {user?.email === 'erickrendon18@gmail.com' && (
+                  <button
+                    onClick={() => setSettingsTab('admin')}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                      background: settingsTab === 'admin' ? 'var(--border-color)' : 'transparent',
+                      color: settingsTab === 'admin' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                    }}>Admin</button>
+                )}
               </div>
             </div>
 
@@ -358,17 +400,18 @@ function App() {
               onPointerDown={(e) => e.stopPropagation()}
               style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
             >
-              {settingsTab === 'categories' ?
-                <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
-                <PasswordSettings
-                  draftData={draftProfile}
-                  onUpdateDraft={setDraftProfile}
-                  user={user}
-                  onCurrencyChange={(newCurrency) => {
-                    setCurrency(newCurrency);
-                    if (user) setUser({ ...user, currency: newCurrency });
-                  }}
-                />
+              {settingsTab === 'admin' ? <Superadmin /> :
+                settingsTab === 'categories' ?
+                  <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
+                  <PasswordSettings
+                    draftData={draftProfile}
+                    onUpdateDraft={setDraftProfile}
+                    user={user}
+                    onCurrencyChange={(newCurrency) => {
+                      setCurrency(newCurrency);
+                      if (user) setUser({ ...user, currency: newCurrency });
+                    }}
+                  />
               }
             </div>
           </motion.div>
@@ -417,7 +460,7 @@ function App() {
       {!showSettings && (
         <div style={{
           position: 'fixed',
-          bottom: '112px',
+          bottom: '144px',
           left: '50%',
           transform: 'translateX(-50%)',
           width: '100%',
@@ -487,6 +530,8 @@ function App() {
           <UpgradeModal onClose={() => setShowUpgrade(false)} />
         )}
       </AnimatePresence>
+
+      <InstallPWATutorial />
 
       <style>{`
         .loader { border: 3px solid #1a1a1a; border-top: 3px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }

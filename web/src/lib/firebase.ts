@@ -4,7 +4,7 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 
 const firebaseConfig = {
     apiKey: "AIzaSyB7gW6xeJ6E98rELYfjcKRnhLL6ZSWVUrw",
-    authDomain: "gastos-110bb.firebaseapp.com",
+    authDomain: window.location.hostname === 'localhost' ? "gastos-110bb.firebaseapp.com" : "finanzasflux.com",
     projectId: "gastos-110bb",
     storageBucket: "gastos-110bb.firebasestorage.app",
     messagingSenderId: "665927620976",

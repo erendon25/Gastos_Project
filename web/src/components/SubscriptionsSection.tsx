@@ -74,10 +74,10 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
                 return style;
             }
         }
-        return { emoji: '📱', color: '#333' };
+        return { emoji: '📱', color: 'var(--glass-border)' };
     };
 
-    if (loading) return <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Cargando suscripciones...</div>;
+    if (loading) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando suscripciones...</div>;
 
     const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
     const now = new Date();
@@ -107,12 +107,12 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
                         alignItems: 'center',
                         gap: '12px'
                     }}>
-                        <div style={{ background: '#818cf8', borderRadius: '10px', padding: '8px', color: '#000' }}>
+                        <div style={{ background: '#818cf8', borderRadius: '10px', padding: '8px', color: 'var(--accent-color)' }}>
                             <Zap size={20} fill="currentColor" />
                         </div>
                         <div>
-                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>Flux PRO</p>
-                            <p style={{ fontSize: '11px', color: '#888' }}>Las suscripciones automáticas son para usuarios PRO. Tus registros se guardarán como gastos simples.</p>
+                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Flux PRO</p>
+                            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Las suscripciones automáticas son para usuarios PRO. Tus registros se guardarán como gastos simples.</p>
                         </div>
                     </div>
                     <button style={{
@@ -136,12 +136,12 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                 {subscriptions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px dashed #333' }}>
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--glass-bg)', borderRadius: '24px', border: '1px dashed #333' }}>
                         <Tv size={48} color="#333" style={{ marginBottom: '16px' }} />
-                        <p style={{ color: '#666', fontSize: '14px' }}>No tienes suscripciones registradas.</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No tienes suscripciones registradas.</p>
                         <button
                             onClick={() => handleAddClick()}
-                            style={{ marginTop: '16px', padding: '10px 20px', borderRadius: '12px', background: '#333', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+                            style={{ marginTop: '16px', padding: '10px 20px', borderRadius: '12px', background: 'var(--glass-border)', color: 'var(--text-primary)', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
                         >
                             Agregar la primera
                         </button>
@@ -162,9 +162,9 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
                                 layout
                                 onClick={() => setEditingItem(sub)}
                                 style={{
-                                    background: isPaid ? '#161616' : 'rgba(255,255,255,0.02)',
+                                    background: isPaid ? 'var(--card-bg)' : 'var(--glass-bg)',
                                     border: '1px solid',
-                                    borderColor: isPaid ? '#222' : 'rgba(255,255,255,0.05)',
+                                    borderColor: isPaid ? 'var(--border-color)' : 'var(--glass-bg)',
                                     borderRadius: '20px',
                                     padding: '16px',
                                     display: 'flex',
@@ -190,7 +190,7 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
 
                                     <div>
                                         <p style={{ fontSize: '15px', fontWeight: 'bold' }}>{sub.description}</p>
-                                        <p style={{ fontSize: '11px', color: '#666' }}>Día {sub.recurringDay}</p>
+                                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Día {sub.recurringDay}</p>
                                     </div>
                                 </div>
 
@@ -201,15 +201,15 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
                                                 e.stopPropagation();
                                                 handleDelete(sub.id);
                                             }}
-                                            style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '4px' }}
+                                            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}
                                         >
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
-                                    <p style={{ fontSize: '16px', fontWeight: '900', color: isPaid ? '#fff' : '#666' }}>
+                                    <p style={{ fontSize: '16px', fontWeight: '900', color: isPaid ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                                         {currency.symbol} {parseFloat(sub.amount.toString()).toFixed(2)}
                                     </p>
-                                    <span style={{ fontSize: '9px', color: '#444', textTransform: 'uppercase', letterSpacing: '1px' }}>Mensual</span>
+                                    <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Mensual</span>
                                 </div>
                             </motion.div>
                         );
@@ -221,7 +221,7 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
             {
                 subscriptions.length > 0 && (
                     <div style={{ marginTop: '32px' }}>
-                        <p style={{ fontSize: '12px', color: '#666', fontWeight: 'bold', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Sugerencias</p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Sugerencias</p>
                         <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px' }}>
                             {Object.entries(SERVICE_LOGOS).map(([name, style]) => (
                                 <button
@@ -239,9 +239,9 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
                                         flexShrink: 0,
                                         padding: '12px 20px',
                                         borderRadius: '16px',
-                                        background: 'rgba(255,255,255,0.02)',
-                                        border: '1px solid rgba(255,255,255,0.05)',
-                                        color: '#fff',
+                                        background: 'var(--glass-bg)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'var(--text-primary)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px',

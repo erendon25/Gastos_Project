@@ -158,12 +158,12 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                         animate={{
                             y: yOffset[cat.id] || 0,
                             scale: isCurrentActive ? 0.95 : 1,
-                            borderColor: isCurrentActive ? '#818cf8' : (hasBudget ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)')
+                            borderColor: isCurrentActive ? '#818cf8' : (hasBudget ? 'var(--text-tertiary)' : 'var(--border-color)')
                         }}
                         style={{
                             minWidth: '100px',
                             height: '160px',
-                            background: '#161616',
+                            background: 'var(--card-bg)',
                             borderRadius: '24px',
                             position: 'relative',
                             display: 'flex',
@@ -205,11 +205,11 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                             <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>{cat.emoji}</span>
                             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{spent.toLocaleString()}</p>
                             {hasBudget && (
-                                <p style={{ fontSize: '10px', color: percent >= 100 ? '#ef4444' : '#666', fontWeight: percent >= 100 ? 'bold' : 'normal' }}>
+                                <p style={{ fontSize: '10px', color: percent >= 100 ? '#ef4444' : 'var(--text-secondary)', fontWeight: percent >= 100 ? 'bold' : 'normal' }}>
                                     {Math.round(percent)}% de {budget}
                                 </p>
                             )}
-                            <p style={{ fontSize: '10px', color: '#444', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</p>
+                            <p style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</p>
                         </div>
                     </motion.div>
                 );
@@ -224,7 +224,7 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="premium-card"
-                            style={{ width: '100%', maxWidth: '320px', background: '#1a1a1a' }}
+                            style={{ width: '100%', maxWidth: '320px', background: 'var(--card-bg)' }}
                         >
                             <h3 style={{ marginBottom: '16px', fontSize: '16px' }}>Presupuesto: {editingBudget.name}</h3>
                             <input
@@ -237,7 +237,7 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                                 style={{ marginBottom: '20px' }}
                             />
                             <div style={{ display: 'flex', gap: '12px' }}>
-                                <button onClick={() => setEditingBudget(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #333', background: 'none', color: '#fff' }}>Cancelar</button>
+                                <button onClick={() => setEditingBudget(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'none', color: 'var(--text-primary)' }}>Cancelar</button>
                                 <button onClick={handleSaveBudget} className="btn-primary" style={{ flex: 1, padding: '12px' }}>Guardar</button>
                             </div>
                         </motion.div>

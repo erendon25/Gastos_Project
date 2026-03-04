@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, Landmark, X, PiggyBank, Pencil, Check, Zap, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, X, PiggyBank, Pencil, Check, Zap, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import RecentTransactions from './RecentTransactions';
 import CategoryBudget from './CategoryBudget';
@@ -340,10 +340,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#262626', overflow: 'hidden' }}>
-            {auth.currentUser?.photoURL ? <img src={auth.currentUser.photoURL} alt="profile" style={{ width: '100%' }} /> : <div style={{ width: '100%', height: '100%', background: '#333' }} />}
+            {auth.currentUser?.photoURL ? <img src={auth.currentUser.photoURL} alt="profile" style={{ width: '100%' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--glass-border)' }} />}
           </div>
           <div>
-            <p style={{ fontSize: '11px', color: '#666' }}>Hola,</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Hola,</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{auth.currentUser?.displayName || 'Usuario'}</p>
               {user?.isPro ? (
@@ -351,7 +351,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                   fontSize: '9px',
                   fontWeight: '900',
                   background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                  color: '#000',
+                  color: 'var(--accent-color)',
                   padding: '2px 6px',
                   borderRadius: '6px',
                   textTransform: 'uppercase'
@@ -361,11 +361,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                   fontSize: '9px',
                   fontWeight: 'bold',
                   background: '#262626',
-                  color: '#666',
+                  color: 'var(--text-secondary)',
                   padding: '2px 6px',
                   borderRadius: '6px',
                   textTransform: 'uppercase',
-                  border: '1px solid #333'
+                  border: '1px solid var(--glass-border)'
                 }}>FREE</span>
               )}
             </div>
@@ -374,7 +374,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         {!user?.isPro && (
           <button style={{
             background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-            color: '#000',
+            color: 'var(--accent-color)',
             border: 'none',
             borderRadius: '12px',
             padding: '8px 14px',
@@ -395,15 +395,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
       </div>
 
       {/* Month Navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <button onClick={() => changeMonth(-1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '12px 16px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+        <button onClick={() => changeMonth(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ChevronLeft size={20} />
         </button>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', fontWeight: '800', textTransform: 'capitalize', color: '#fff' }}>{monthYearLabel}</p>
-          <p style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{rangeLabel}</p>
+          <p style={{ fontSize: '14px', fontWeight: '800', textTransform: 'capitalize', color: 'var(--text-primary)' }}>{monthYearLabel}</p>
+          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>{rangeLabel}</p>
         </div>
-        <button onClick={() => changeMonth(1)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => changeMonth(1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ChevronRight size={20} />
         </button>
       </div>
@@ -412,8 +412,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
       <div className="premium-card"
         onClick={() => setBreakdownType('balance')}
         style={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-          border: '1px solid #222',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-color)',
           textAlign: 'center',
           padding: '32px 24px',
           position: 'relative',
@@ -433,7 +433,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
           onPointerDown={() => handlePressStart('income')}
           onPointerUp={handlePressEnd}
           onPointerLeave={handlePressEnd}
-          style={{ background: '#101410', border: '1px solid rgba(74, 222, 128, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
+          style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <TrendingUp size={16} color="var(--income-color)" />
@@ -448,7 +448,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
           onPointerDown={() => handlePressStart('expense')}
           onPointerUp={handlePressEnd}
           onPointerLeave={handlePressEnd}
-          style={{ background: '#141010', border: '1px solid rgba(248, 113, 113, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
+          style={{ background: 'var(--card-bg)', border: '1px solid rgba(248, 113, 113, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <TrendingDown size={16} color="var(--expense-color)" />
@@ -465,30 +465,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
       </div>
 
       {/* PRO Banner — only for non-premium users */}
-      {!isPremium && <ProBanner />}
+      {!user?.isPro && <ProBanner />}
 
       {/* Savings Card */}
       {(() => {
         const savingsProgress = savingsGoal > 0 ? Math.min(100, (balance / savingsGoal) * 100) : 0;
         const savingsColor = savingsProgress >= 100 ? '#4ade80' : savingsProgress >= 60 ? '#facc15' : '#f87171';
         return (
-          <div className="premium-card" style={{ background: 'linear-gradient(135deg, #0d1a10 0%, #0a0a0a 100%)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+          <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <PiggyBank size={18} color="#4ade80" />
-                <span style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Meta de Ahorro</span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Meta de Ahorro</span>
               </div>
               {!editingSavings ? (
                 <button
                   onClick={() => { setSavingsInput(savingsGoal > 0 ? String(savingsGoal) : ''); setEditingSavings(true); }}
-                  style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+                  style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
                 >
                   <Pencil size={12} /> Editar
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ paddingLeft: '10px', color: '#888', fontSize: '13px' }}>{currency.symbol}</span>
+                    <span style={{ paddingLeft: '10px', color: 'var(--text-secondary)', fontSize: '13px' }}>{currency.symbol}</span>
                     <input
                       autoFocus
                       type="number"
@@ -496,13 +496,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                       value={savingsInput}
                       onChange={e => setSavingsInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleSaveSavings()}
-                      style={{ background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '16px', padding: '8px 10px', width: '110px' }}
+                      style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '16px', padding: '8px 10px', width: '110px' }}
                       placeholder="0.00"
                     />
                   </div>
                   <button
                     onClick={handleSaveSavings}
-                    style={{ background: '#4ade80', border: 'none', borderRadius: '8px', padding: '8px 12px', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700' }}
+                    style={{ background: '#4ade80', border: 'none', borderRadius: '8px', padding: '8px 12px', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700' }}
                   >
                     <Check size={14} /> OK
                   </button>
@@ -513,77 +513,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             {savingsGoal > 0 ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', color: '#666' }}>Balance actual</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Balance actual</span>
                   <span style={{ fontSize: '12px', color: savingsColor, fontWeight: '700' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ height: '8px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
                   <div style={{ width: `${savingsProgress}%`, height: '100%', background: `linear-gradient(90deg, ${savingsColor}cc, ${savingsColor})`, borderRadius: '4px', transition: 'width 0.8s ease' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '11px', color: '#555' }}>Meta: {currency.symbol} {savingsGoal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Meta: {currency.symbol} {savingsGoal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                   <span style={{ fontSize: '11px', color: savingsColor, fontWeight: '600' }}>{savingsProgress.toFixed(0)}% logrado</span>
                 </div>
               </>
             ) : (
-              <p style={{ fontSize: '13px', color: '#555', textAlign: 'center', padding: '8px 0' }}>Toca "Editar" para definir tu meta de ahorro mensual</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '8px 0' }}>Toca "Editar" para definir tu meta de ahorro mensual</p>
             )}
           </div>
         );
       })()}
 
-      {/* Visual Analysis Chart (PieChart) */}
-      {
-        expensesChartData.length > 0 && (
-          <div className="premium-card" style={{ padding: '20px', background: '#111', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
-            <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
-            <div style={{ height: '220px', position: 'relative' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expensesChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {expensesChartData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
-                    contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', color: '#fff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Center Label */}
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                <p style={{ fontSize: '10px', color: '#666' }}>Total Var.</p>
-                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
-              </div>
-            </div>
-            {/* Legend */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
-              {expensesChartData.slice(0, 5).map((entry, index) => (
-                <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
-                  <span style={{ fontSize: '11px', color: '#aaa' }}>{entry.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      }
+
 
       {/* Category Budgets & Swipes */}
       <div style={{ margin: '8px 0' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           Categorías & Presupuestos
-          <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#666' }}>(Desliza ↑ editar, ↓ gastar)</span>
+          <span style={{ fontSize: '10px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(Desliza ↑ editar, ↓ gastar)</span>
         </h3>
         <CategoryBudget currentDate={currentDate} onAddExpense={onAddFromCategory} />
       </div>
@@ -593,8 +547,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         debts.length > 0 && (
           <div className="premium-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Landmark size={20} color="#ef4444" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Profile"
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.style.display = 'none';
+                      const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (nextSibling) nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  style={{
+                    display: user?.photoURL ? 'none' : 'flex',
+                    width: '40px', height: '40px', borderRadius: '50%', background: 'var(--brand-color)', color: 'white', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                  }}
+                >
+                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                </div>
                 <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>Deuda Total Restante</h3>
               </div>
               <p style={{ fontSize: '18px', fontWeight: '800', color: '#ef4444' }}>{currency.symbol} {totalRemainingDebt.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
@@ -630,24 +604,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                 }
 
                 return (
-                  <div key={debt.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px' }}>
+                  <div key={debt.id} style={{ background: 'var(--glass-bg)', padding: '12px', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <span style={{ fontSize: '13px', fontWeight: '500' }}>{debt.description || debt.category}</span>
-                      <span style={{ fontSize: '12px', color: '#666' }}>{statusText}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{statusText}</span>
                     </div>
-                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '6px', background: 'var(--glass-bg)', borderRadius: '3px', overflow: 'hidden' }}>
                       <div style={{ width: `${percent}%`, height: '100%', background: isInsurance ? '#4ade80' : '#ef4444', borderRadius: '3px', transition: 'width 1s ease-in-out' }} />
                     </div>
                     {!isInsurance && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                        <span style={{ fontSize: '10px', color: '#666' }}>{currency.symbol} {debt.remainingAmount?.toLocaleString()} restante</span>
-                        <span style={{ fontSize: '10px', color: '#666' }}>Total: {currency.symbol} {debt.totalLoanAmount?.toLocaleString()}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{currency.symbol} {debt.remainingAmount?.toLocaleString()} restante</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total: {currency.symbol} {debt.totalLoanAmount?.toLocaleString()}</span>
                       </div>
                     )}
                     {isInsurance && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                        <span style={{ fontSize: '10px', color: '#666' }}>Inició: {debt.startDate?.toDate().toLocaleDateString()}</span>
-                        <span style={{ fontSize: '10px', color: '#666' }}>Fin: {debt.dueDate?.toDate().toLocaleDateString()}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Inició: {debt.startDate?.toDate().toLocaleDateString()}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Fin: {debt.dueDate?.toDate().toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -672,6 +646,55 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         <RecentTransactions onNavigate={onNavigate} currency={currency} />
       </div>
 
+      {/* Visual Analysis Chart (PieChart) */}
+      {
+        expensesChartData.length > 0 && (
+          <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', border: '1px solid var(--glass-border)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
+            <div style={{ height: '220px', position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={expensesChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {expensesChartData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
+                    contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center Label */}
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total Var.</p>
+                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
+              </div>
+            </div>
+            {/* Legend */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
+              {expensesChartData.slice(0, 5).map((entry, index) => (
+                <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      }
+
       {/* Breakdown Modal */}
       <AnimatePresence>
         {breakdownType && (
@@ -684,23 +707,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{ padding: '24px', background: '#111', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', position: 'relative', zIndex: 1 }}
+              style={{ padding: '24px', background: 'var(--card-bg-light)', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', position: 'relative', zIndex: 1 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>
                   {breakdownType === 'balance' ? 'Detalle del Saldo Total' : `Desglose de ${breakdownType === 'income' ? 'Ingresos' : 'Egresos'}`}
                 </h2>
-                <button onClick={() => setBreakdownType(null)} style={{ background: '#222', border: 'none', color: '#fff', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                <button onClick={() => setBreakdownType(null)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
                   <X size={20} />
                 </button>
               </div>
 
               {breakdownType === 'balance' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
-                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px', lineHeight: '1.4' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: '1.4' }}>
                     El saldo es el resultado de la formula: **Total Ingresos en este mes - Total Egresos en este mes**. Este balance es sólo de tu mes actual, no considera meses anteriores.
                   </p>
-                  <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Ingresos del Mes (+)</h3>
+                  <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ingresos del Mes (+)</h3>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '12px', color: '#4ade80' }}>
                     <span>Ingresos Variables</span>
                     <span style={{ fontWeight: 'bold' }}>{currency.symbol} {data.income.toLocaleString()}</span>
@@ -710,7 +733,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                     <span style={{ fontWeight: 'bold' }}>{currency.symbol} {data.recurringIncome.toLocaleString()}</span>
                   </div>
 
-                  <h3 style={{ fontSize: '14px', color: '#666', marginTop: '8px', marginBottom: '4px' }}>Egresos del Mes (-)</h3>
+                  <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>Egresos del Mes (-)</h3>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(248, 113, 113, 0.1)', borderRadius: '12px', color: '#f87171' }}>
                     <span>Gastos Diarios Individuales</span>
                     <span style={{ fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</span>
@@ -730,7 +753,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                 </div>
               ) : breakdownType === 'income' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
-                  {recurringIncomeList.length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Ingresos Fijos</h3>}
+                  {recurringIncomeList.length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ingresos Fijos</h3>}
                   {recurringIncomeList.map((inc, i) => (
                     <div key={`inc-rec-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '12px', color: '#4ade80' }}>
                       <span>{inc.name}</span>
@@ -738,20 +761,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                     </div>
                   ))}
 
-                  {Object.keys(incomeByCategory).length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginTop: '8px', marginBottom: '4px' }}>Por Categoría (Variables)</h3>}
+                  {Object.keys(incomeByCategory).length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>Por Categoría (Variables)</h3>}
                   {Object.entries(incomeByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                    <div key={`inc-cat-${cat}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                    <div key={`inc-cat-${cat}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px' }}>
                       <span>{cat}</span>
                       <span style={{ fontWeight: 'bold' }}>{currency.symbol} {amt.toLocaleString()}</span>
                     </div>
                   ))}
                   {Object.keys(incomeByCategory).length === 0 && recurringIncomeList.length === 0 && (
-                    <p style={{ color: '#666', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ingresos registrados en este periodo.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ingresos registrados en este periodo.</p>
                   )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
-                  {recurringExpensesList.length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Gastos Fijos (Alquiler, Servicios, etc)</h3>}
+                  {recurringExpensesList.length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Gastos Fijos (Alquiler, Servicios, etc)</h3>}
                   {recurringExpensesList.map((rec, i) => (
                     <div key={`exp-rec-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(248, 113, 113, 0.1)', borderRadius: '12px', color: '#f87171' }}>
                       <span>{rec.name}</span>
@@ -759,7 +782,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                     </div>
                   ))}
 
-                  {subscriptionsList.length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Suscripciones</h3>}
+                  {subscriptionsList.length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Suscripciones</h3>}
                   {subscriptionsList.map((sub, i) => (
                     <div key={`exp-sub-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(248, 113, 113, 0.1)', borderRadius: '12px', color: '#f87171' }}>
                       <span>{sub.name}</span>
@@ -767,7 +790,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                     </div>
                   ))}
 
-                  {debtsList.length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginTop: '8px', marginBottom: '4px' }}>Deudas y Seguros</h3>}
+                  {debtsList.length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>Deudas y Seguros</h3>}
                   {debtsList.map((debt, i) => (
                     <div key={`debt-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', color: '#ef4444' }}>
                       <span>{debt.name}</span>
@@ -775,16 +798,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                     </div>
                   ))}
 
-                  {Object.keys(expensesByCategory).length > 0 && <h3 style={{ fontSize: '14px', color: '#666', marginTop: '8px', marginBottom: '4px' }}>Gastos Diarios por Categoría</h3>}
+                  {Object.keys(expensesByCategory).length > 0 && <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>Gastos Diarios por Categoría</h3>}
                   {Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                    <div key={`exp-cat-${cat}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                    <div key={`exp-cat-${cat}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px' }}>
                       <span>{cat}</span>
                       <span style={{ fontWeight: 'bold' }}>{currency.symbol} {amt.toLocaleString()}</span>
                     </div>
                   ))}
 
                   {Object.keys(expensesByCategory).length === 0 && recurringExpensesList.length === 0 && debtsList.length === 0 && (
-                    <p style={{ color: '#666', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay gastos registrados en este periodo.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay gastos registrados en este periodo.</p>
                   )}
                 </div>
               )}

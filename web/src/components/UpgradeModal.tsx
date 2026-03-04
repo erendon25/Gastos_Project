@@ -16,60 +16,13 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(false);
 
     const handleUpgrade = async () => {
-        const ACCESS_TOKEN = 'APP_USR-5804890502331578-030220-6d5e8b2692a506ef4783e1836d66d7d0-148250709';
-
-        try {
-            setLoading(true);
-            // STEP 1: Create preference via PROXY (Bypasses CORS for DEV)
-            const response = await fetch('/mp-api/checkout/preferences', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    items: [
-                        {
-                            title: 'Flux PRO - Acceso de por vida',
-                            unit_price: 5.0,
-                            quantity: 1,
-                            currency_id: 'PEN'
-                        }
-                    ],
-                    back_urls: {
-                        success: 'https://myflux.app/success',
-                        failure: 'https://myflux.app/failure',
-                        pending: 'https://myflux.app/pending'
-                    },
-                    auto_return: 'approved'
-                })
-            });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error('Preference Error Text:', errText);
-                alert(`API Error: ${response.status} - ${errText}`);
-                throw new Error('No se pudo crear la preferencia');
-            }
-
-            const preference = await response.json();
-
-            // STEP 2: Redirect to full Mercado Pago Checkout (Supports Yape, PagoEfectivo, etc)
-            if (preference.init_point) {
-                window.location.href = preference.init_point;
-            } else {
-                throw new Error('No se generó el link de pago (init_point)');
-            }
-        } catch (error: any) {
-            console.error('Error initiating payment:', error);
-            if (error.message !== 'No se pudo crear la preferencia') {
-                alert(`Error interno: ${error.message}`);
-            }
-            // Fallback to direct link if SDK fails
+        setLoading(true);
+        // Directamente utilizamos el link de pago ya que MercadoPago bloquea CORS en Frontend
+        // y usar el ACCESS TOKEN acá es una vulnerabilidad de seguridad grave.
+        setTimeout(() => {
             window.open('https://mpago.la/1M4ZuPH', '_blank');
-        } finally {
             setLoading(false);
-        }
+        }, 600); // Pequeño delay visual para mejor UX
     };
 
     const plan = {
@@ -118,7 +71,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                     position: 'relative',
                     width: '100%',
                     maxWidth: '400px',
-                    background: '#111',
+                    background: 'var(--card-bg-light)',
                     borderRadius: '32px',
                     border: '1px solid rgba(255,255,255,0.1)',
                     overflow: 'hidden',
@@ -147,7 +100,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#fff',
+                            color: 'var(--text-primary)',
                             cursor: 'pointer'
                         }}
                     >
@@ -156,7 +109,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                     <div style={{
                         width: '80px',
                         height: '80px',
-                        background: '#000',
+                        background: 'var(--bg-color)',
                         borderRadius: '24px',
                         display: 'flex',
                         alignItems: 'center',
@@ -169,12 +122,12 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
 
                 <div style={{ padding: '32px 24px' }}>
                     <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#fff', marginBottom: '8px' }}>Desbloquea Flux PRO</h2>
-                        <p style={{ color: '#666', fontSize: '14px' }}>Toma el control total de tus finanzas sin límites.</p>
+                        <h2 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Desbloquea Flux PRO</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Toma el control total de tus finanzas sin límites.</p>
                     </div>
 
                     <div style={{
-                        background: 'rgba(255,255,255,0.03)',
+                        background: 'var(--glass-bg)',
                         borderRadius: '24px',
                         padding: '24px',
                         border: '1px solid rgba(251, 191, 36, 0.2)'
@@ -182,9 +135,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
                             <div>
                                 <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>{plan.name}</p>
-                                <p style={{ fontSize: '32px', fontWeight: '900', color: '#fff' }}>{plan.price}</p>
+                                <p style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)' }}>{plan.price}</p>
                             </div>
-                            <p style={{ fontSize: '14px', color: '#666', marginBottom: '6px' }}>{plan.period}</p>
+                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '6px' }}>{plan.period}</p>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
@@ -213,7 +166,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                                 width: '100%',
                                 padding: '18px',
                                 background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                                color: '#000',
+                                color: 'var(--accent-color)',
                                 border: 'none',
                                 borderRadius: '16px',
                                 fontWeight: '900',
@@ -227,7 +180,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                         </motion.button>
                     </div>
 
-                    <p style={{ textAlign: 'center', fontSize: '11px', color: '#444', marginTop: '24px' }}>
+                    <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '24px' }}>
                         Acceso de por vida. Un solo pago.
                     </p>
                 </div>

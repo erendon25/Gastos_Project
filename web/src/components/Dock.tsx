@@ -2,10 +2,10 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Home, Wallet, Repeat, Landmark, TrendingUp, Tv } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const navBgColor = '#14213d';
+const navBgColor = 'var(--card-bg)';
 const activeItemColor = '#fca311';
-const activeIconColor = '#000000';
-const inactiveIconColor = '#e5e5e5';
+const activeIconColor = 'var(--bg-color)';
+const inactiveIconColor = 'var(--text-secondary)';
 
 const tabs = [
     { id: 'home', icon: Home, label: 'Inicio' },
@@ -66,8 +66,6 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                 maxWidth: '430px',
                 height: '74px',
                 zIndex: 50,
-                // Soft shadow for the entire pill, perfectly outlines the masked shape too
-                filter: 'drop-shadow(0px 16px 32px rgba(0,0,0,0.6))',
             }}
         >
             {/* SVG Background Layer defining the pill and the liquid hole cutout */}
@@ -176,7 +174,7 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                                             bottom: '8px',
                                             fontSize: '10px',
                                             fontWeight: '800',
-                                            color: '#ffffff',
+                                            color: 'var(--text-primary)',
                                             pointerEvents: 'none',
                                             letterSpacing: '0.2px'
                                         }}

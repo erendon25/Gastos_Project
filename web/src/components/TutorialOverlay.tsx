@@ -69,18 +69,18 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onComplete }) => {
                     }}
                 >
                     <div style={{
-                        width: '80px', height: '80px', background: 'rgba(255,255,255,0.03)',
+                        width: '80px', height: '80px', background: 'var(--glass-bg)',
                         borderRadius: '24px', display: 'flex', alignItems: 'center',
                         justifyContent: 'center', margin: '0 auto 24px auto'
                     }}>
                         {steps[step].icon}
                     </div>
 
-                    <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '16px', color: '#fff' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '16px', color: 'var(--text-primary)' }}>
                         {steps[step].title}
                     </h2>
 
-                    <p style={{ fontSize: '15px', color: '#aaa', lineHeight: '1.6', marginBottom: '32px' }}>
+                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '32px' }}>
                         {steps[step].description}
                     </p>
 
@@ -90,7 +90,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onComplete }) => {
                                 width: step === i ? '24px' : '6px',
                                 height: '6px',
                                 borderRadius: '3px',
-                                background: step === i ? '#818cf8' : '#333',
+                                background: step === i ? '#818cf8' : 'var(--glass-border)',
                                 transition: 'all 0.3s'
                             }} />
                         ))}
@@ -100,7 +100,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ onComplete }) => {
                         onClick={handleNext}
                         style={{
                             width: '100%', padding: '16px', borderRadius: '16px',
-                            background: '#fff', color: '#000', border: 'none',
+                            background: 'var(--text-primary)', color: 'var(--accent-color)', border: 'none',
                             fontWeight: '800', fontSize: '16px', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                         }}

@@ -41,7 +41,7 @@ const CategorySettings: React.FC<CategorySettingsProps> = ({ user }) => {
                 className="btn-primary"
                 style={{
                     height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    fontSize: '16px', background: 'linear-gradient(135deg, #111, #222)', border: '1px solid #333'
+                    fontSize: '16px', background: 'linear-gradient(135deg, #111, #222)', border: '1px solid var(--glass-border)'
                 }}
             >
                 <Layers size={20} /> Crear Nueva Categoría
@@ -58,29 +58,29 @@ const CategorySettings: React.FC<CategorySettingsProps> = ({ user }) => {
             </AnimatePresence>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ fontSize: '13px', color: '#666', fontWeight: 'bold', letterSpacing: '0.05em' }}>MIS CATEGORÍAS</h4>
-                {userCategories.length === 0 && <p style={{ fontSize: '13px', color: '#444', textAlign: 'center', padding: '20px' }}>Aún no has creado categorías propias.</p>}
+                <h4 style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.05em' }}>MIS CATEGORÍAS</h4>
+                {userCategories.length === 0 && <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px' }}>Aún no has creado categorías propias.</p>}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                     {userCategories.map((cat) => (
-                        <div key={cat.id} className="premium-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#111' }}>
+                        <div key={cat.id} className="premium-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg-light)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                 <div style={{
                                     width: '36px',
                                     height: '36px',
                                     borderRadius: '10px',
-                                    background: cat.color ? `${cat.color}22` : 'rgba(255,255,255,0.03)',
+                                    background: cat.color ? `${cat.color}22` : 'var(--glass-bg)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontSize: '18px',
-                                    border: `1px solid ${cat.color ? cat.color + '44' : 'rgba(255,255,255,0.05)'}`
+                                    border: `1px solid ${cat.color ? cat.color + '44' : 'var(--glass-bg)'}`
                                 }}>
                                     {cat.emoji || '📦'}
                                 </div>
                                 <span style={{ fontSize: '15px', fontWeight: '500' }}>{cat.name}</span>
                             </div>
-                            <button onClick={() => handleDelete(cat.id)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '8px' }}>
+                            <button onClick={() => handleDelete(cat.id)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '8px' }}>
                                 <Trash2 size={16} />
                             </button>
                         </div>

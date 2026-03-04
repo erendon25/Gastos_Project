@@ -1,0 +1,193 @@
+﻿interactive rebase in progress; onto 56158d4
+Last command done (1 command done):
+   pick 5c95522 # feat: superadmin panel enhancements, web layout and PWA updates
+No commands remaining.
+You are currently rebasing branch 'main' on '56158d4'.
+  (fix conflicts and then run "git rebase --continue")
+  (use "git rebase --skip" to skip this patch)
+  (use "git rebase --abort" to check out the original branch)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   firebase/firestore.rules
+	modified:   ios/Flux/FluxApp.swift
+	modified:   ios/Flux/ViewModels/AuthViewModel.swift
+	new file:   ios/Flux/ViewModels/DashboardViewModel.swift
+	modified:   ios/Flux/Views/DashboardView.swift
+	modified:   ios/Flux/Views/LoginView.swift
+	modified:   ios/Flux/Views/MainTabView.swift
+	deleted:    mobile/.gitignore
+	deleted:    mobile/.metadata
+	deleted:    mobile/README.md
+	deleted:    mobile/analysis_options.yaml
+	deleted:    mobile/android/.gitignore
+	deleted:    mobile/android/app/build.gradle.kts
+	deleted:    mobile/android/app/src/debug/AndroidManifest.xml
+	deleted:    mobile/android/app/src/main/AndroidManifest.xml
+	deleted:    mobile/android/app/src/main/kotlin/com/example/gastos_premium/MainActivity.kt
+	deleted:    mobile/android/app/src/main/res/drawable-v21/launch_background.xml
+	deleted:    mobile/android/app/src/main/res/drawable/launch_background.xml
+	deleted:    mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+	deleted:    mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+	deleted:    mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+	deleted:    mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+	deleted:    mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+	deleted:    mobile/android/app/src/main/res/values-night/styles.xml
+	deleted:    mobile/android/app/src/main/res/values/styles.xml
+	deleted:    mobile/android/app/src/profile/AndroidManifest.xml
+	deleted:    mobile/android/build.gradle.kts
+	deleted:    mobile/android/gradle.properties
+	deleted:    mobile/android/gradle/wrapper/gradle-wrapper.properties
+	deleted:    mobile/android/settings.gradle.kts
+	deleted:    mobile/ios/.gitignore
+	deleted:    mobile/ios/Flutter/AppFrameworkInfo.plist
+	deleted:    mobile/ios/Flutter/Debug.xcconfig
+	deleted:    mobile/ios/Flutter/Release.xcconfig
+	deleted:    mobile/ios/Runner.xcodeproj/project.pbxproj
+	deleted:    mobile/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+	deleted:    mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+	deleted:    mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+	deleted:    mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+	deleted:    mobile/ios/Runner.xcworkspace/contents.xcworkspacedata
+	deleted:    mobile/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+	deleted:    mobile/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+	deleted:    mobile/ios/Runner/AppDelegate.swift
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json
+	deleted:    mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png
+	deleted:    mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md
+	deleted:    mobile/ios/Runner/Base.lproj/LaunchScreen.storyboard
+	deleted:    mobile/ios/Runner/Base.lproj/Main.storyboard
+	deleted:    mobile/ios/Runner/GoogleService-Info.plist
+	deleted:    mobile/ios/Runner/Info.plist
+	deleted:    mobile/ios/Runner/Runner-Bridging-Header.h
+	deleted:    mobile/ios/RunnerTests/RunnerTests.swift
+	deleted:    mobile/lib/main.dart
+	deleted:    mobile/lib/models/transaction.dart
+	deleted:    mobile/lib/screens/login_screen.dart
+	deleted:    mobile/lib/services/firebase_service.dart
+	deleted:    mobile/lib/voice_service.dart
+	deleted:    mobile/lib/widgets/add_expense_sheet.dart
+	deleted:    mobile/lib/widgets/settings_sheet.dart
+	deleted:    mobile/linux/.gitignore
+	deleted:    mobile/linux/CMakeLists.txt
+	deleted:    mobile/linux/flutter/CMakeLists.txt
+	deleted:    mobile/linux/flutter/generated_plugin_registrant.cc
+	deleted:    mobile/linux/flutter/generated_plugin_registrant.h
+	deleted:    mobile/linux/flutter/generated_plugins.cmake
+	deleted:    mobile/linux/runner/CMakeLists.txt
+	deleted:    mobile/linux/runner/main.cc
+	deleted:    mobile/linux/runner/my_application.cc
+	deleted:    mobile/linux/runner/my_application.h
+	deleted:    mobile/macos/.gitignore
+	deleted:    mobile/macos/Flutter/Flutter-Debug.xcconfig
+	deleted:    mobile/macos/Flutter/Flutter-Release.xcconfig
+	deleted:    mobile/macos/Flutter/GeneratedPluginRegistrant.swift
+	deleted:    mobile/macos/Runner.xcodeproj/project.pbxproj
+	deleted:    mobile/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+	deleted:    mobile/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+	deleted:    mobile/macos/Runner.xcworkspace/contents.xcworkspacedata
+	deleted:    mobile/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+	deleted:    mobile/macos/Runner/AppDelegate.swift
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+	deleted:    mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png
+	deleted:    mobile/macos/Runner/Base.lproj/MainMenu.xib
+	deleted:    mobile/macos/Runner/Configs/AppInfo.xcconfig
+	deleted:    mobile/macos/Runner/Configs/Debug.xcconfig
+	deleted:    mobile/macos/Runner/Configs/Release.xcconfig
+	deleted:    mobile/macos/Runner/Configs/Warnings.xcconfig
+	deleted:    mobile/macos/Runner/DebugProfile.entitlements
+	deleted:    mobile/macos/Runner/Info.plist
+	deleted:    mobile/macos/Runner/MainFlutterWindow.swift
+	deleted:    mobile/macos/Runner/Release.entitlements
+	deleted:    mobile/macos/RunnerTests/RunnerTests.swift
+	deleted:    mobile/pubspec.yaml
+	deleted:    mobile/test/widget_test.dart
+	deleted:    mobile/web/favicon.png
+	deleted:    mobile/web/icons/Icon-192.png
+	deleted:    mobile/web/icons/Icon-512.png
+	deleted:    mobile/web/icons/Icon-maskable-192.png
+	deleted:    mobile/web/icons/Icon-maskable-512.png
+	deleted:    mobile/web/index.html
+	deleted:    mobile/web/manifest.json
+	deleted:    mobile/windows/.gitignore
+	deleted:    mobile/windows/CMakeLists.txt
+	deleted:    mobile/windows/flutter/CMakeLists.txt
+	deleted:    mobile/windows/flutter/generated_plugin_registrant.cc
+	deleted:    mobile/windows/flutter/generated_plugin_registrant.h
+	deleted:    mobile/windows/flutter/generated_plugins.cmake
+	deleted:    mobile/windows/runner/CMakeLists.txt
+	deleted:    mobile/windows/runner/Runner.rc
+	deleted:    mobile/windows/runner/flutter_window.cpp
+	deleted:    mobile/windows/runner/flutter_window.h
+	deleted:    mobile/windows/runner/main.cpp
+	deleted:    mobile/windows/runner/resource.h
+	deleted:    mobile/windows/runner/resources/app_icon.ico
+	deleted:    mobile/windows/runner/runner.exe.manifest
+	deleted:    mobile/windows/runner/utils.cpp
+	deleted:    mobile/windows/runner/utils.h
+	deleted:    mobile/windows/runner/win32_window.cpp
+	deleted:    mobile/windows/runner/win32_window.h
+	modified:   web/.firebaserc
+	new file:   web/firestore.rules
+	new file:   web/replace_colors.py
+	modified:   web/src/App.tsx
+	modified:   web/src/components/AddExpenseModal.tsx
+	modified:   web/src/components/CategoryBudget.tsx
+	modified:   web/src/components/CategorySettings.tsx
+	modified:   web/src/components/CreateCategoryModal.tsx
+	modified:   web/src/components/DebtSection.tsx
+	modified:   web/src/components/Dock.tsx
+	new file:   web/src/components/InstallPWATutorial.tsx
+	modified:   web/src/components/Onboarding.tsx
+	modified:   web/src/components/PasswordSettings.tsx
+	modified:   web/src/components/RecentTransactions.tsx
+	modified:   web/src/components/SpeechButton.tsx
+	modified:   web/src/components/SubscriptionsSection.tsx
+	new file:   web/src/components/Superadmin.tsx
+	modified:   web/src/components/TransactionsList.tsx
+	modified:   web/src/components/TutorialOverlay.tsx
+	modified:   web/src/components/UpgradeModal.tsx
+	modified:   web/src/index.css
+	modified:   web/src/lib/firebase.ts
+	modified:   web/src/lib/subscriptionUtils.ts
+	modified:   web/vite.config.ts
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	both modified:   web/.env
+	deleted by us:   web/.firebase/hosting.ZGlzdA.cache
+	both modified:   web/.gitignore
+	both modified:   web/firebase.json
+	both modified:   web/src/components/Dashboard.tsx
+	both modified:   web/src/components/Login.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_status_2.txt
+	status.txt
+

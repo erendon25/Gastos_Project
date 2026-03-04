@@ -76,18 +76,45 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const lockout = localStorage.getItem('loginLockout');
+        if (lockout && parseInt(lockout) > Date.now()) {
+            const remainingMins = Math.ceil((parseInt(lockout) - Date.now()) / 60000);
+            setError(`Demasiados intentos. Intenta nuevamente en ${remainingMins} minutos.`);
+            return;
+        }
+
+        if (lockout) {
+            localStorage.removeItem('loginLockout');
+            localStorage.removeItem('loginAttempts');
+        }
+
         setLoading(true);
         setError('');
         setSuccess('');
+
+        if (isRegistering) {
+            const isStrongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+            if (!isStrongPassword.test(password)) {
+                setError('La contraseña debe tener al menos 8 caracteres, 1 mayúscula, 1 minúscula y 1 número.');
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
             if (isRegistering) {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
+                localStorage.removeItem('loginAttempts');
+                localStorage.removeItem('loginLockout');
                 await sendEmailVerification(cred.user, ACTION_CODE_SETTINGS);
                 setVerificationPending(true);
                 startCooldown();
             } else {
                 const cred = await signInWithEmailAndPassword(auth, email, password);
+                localStorage.removeItem('loginAttempts');
+                localStorage.removeItem('loginLockout');
                 if (!cred.user.emailVerified) {
                     await sendEmailVerification(cred.user, ACTION_CODE_SETTINGS);
                     setVerificationPending(true);
@@ -97,12 +124,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 }
             }
         } catch (err: any) {
-            if (err.code === 'auth/user-not-found') setError('No existe una cuenta con este correo.');
-            else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') setError('Contraseña incorrecta.');
-            else if (err.code === 'auth/email-already-in-use') setError('El correo ya está registrado. Inicia sesión.');
-            else if (err.code === 'auth/weak-password') setError('La contraseña debe tener al menos 6 caracteres.');
-            else if (err.code === 'auth/invalid-email') setError('El correo no tiene un formato válido.');
-            else setError('Error: ' + err.message);
+            let attempts = parseInt(localStorage.getItem('loginAttempts') || '0') + 1;
+            localStorage.setItem('loginAttempts', attempts.toString());
+
+            if (attempts >= 5) {
+                const lockTime = Date.now() + 5 * 60 * 1000; // 5 minutos
+                localStorage.setItem('loginLockout', lockTime.toString());
+                setError('Demasiados intentos fallidos. Cuenta bloqueada temporalmente por 5 minutos.');
+            } else {
+                if (err.code === 'auth/user-not-found') setError('No existe una cuenta con este correo.');
+                else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') setError('Contraseña incorrecta.');
+                else if (err.code === 'auth/email-already-in-use') setError('El correo ya está registrado. Inicia sesión.');
+                else if (err.code === 'auth/weak-password') setError('La contraseña debe tener al menos 6 caracteres.');
+                else if (err.code === 'auth/invalid-email') setError('El correo no tiene un formato válido.');
+                else setError('Error: ' + err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -298,7 +334,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#888' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         <input
                             type="checkbox"
                             checked={rememberMe}
@@ -308,7 +344,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         Recordar cuenta
                     </label>
                     {!isRegistering && (
-                        <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: '#666', fontSize: '12px', textAlign: 'right', cursor: 'pointer', padding: '0' }}>
+                        <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'right', cursor: 'pointer', padding: '0' }}>
                             ¿Olvidaste tu contraseña?
                         </button>
                     )}
@@ -330,20 +366,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ flex: 1, height: '1px', background: '#222' }} />
-                <span style={{ fontSize: '12px', color: '#444' }}>o continúa con</span>
-                <div style={{ flex: 1, height: '1px', background: '#222' }} />
+                <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>o continúa con</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button onClick={handleGoogleLogin} disabled={loading} className="input-field"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: '#1c1c1e', border: '1px solid #333', fontSize: '16px' }}>
+                <button onClick={handleGoogleLogin} disabled={loading} className="input-field" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: '#1c1c1e', border: '1px solid var(--glass-border)', fontSize: '16px' }}>
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="G" />
                     Google
                 </button>
-                <button onClick={handleAppleLogin} disabled={loading} className="input-field"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: '#000', border: '1px solid #333', fontSize: '16px' }}>
-                    <Apple size={20} fill="#fff" />
+                <button onClick={handleAppleLogin} disabled={loading} className="input-field" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-color)', border: '1px solid var(--glass-border)', fontSize: '16px' }}>
+                    <Apple size={20} fill="var(--text-primary)" />
                     Apple
                 </button>
             </div>

@@ -57,6 +57,22 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 createdAt: new Date().toISOString()
             }, { merge: true });
 
+            // Registrar referido si existe
+            const refCode = localStorage.getItem('fluxRefCode');
+            if (refCode && refCode !== auth.currentUser.uid) {
+                try {
+                    await setDoc(doc(db, 'referrals', auth.currentUser.uid), {
+                        referrerId: refCode,
+                        referredId: auth.currentUser.uid,
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                    });
+                    localStorage.removeItem('fluxRefCode');
+                } catch (e) {
+                    console.error("Error saving referral:", e);
+                }
+            }
+
             onComplete();
         } catch (error) {
             console.error("Error saving onboarding:", error);
@@ -74,7 +90,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             flexDirection: 'column',
             justifyContent: 'center',
             padding: '40px 20px',
-            color: '#fff'
+            color: 'var(--text-primary)'
         }}>
             <AnimatePresence mode="wait">
                 {step === 0 && (
@@ -95,7 +111,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             <Zap size={50} color="#000" />
                         </div>
                         <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '16px' }}>¡Bienvenido!</h1>
-                        <p style={{ color: '#888', fontSize: '16px', lineHeight: '1.5', maxWidth: '300px' }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: '1.5', maxWidth: '300px' }}>
                             Estás a un paso de tomar el control total de tus finanzas. Vamos a configurar tu espacio en menos de un minuto.
                         </p>
 
@@ -127,7 +143,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                 <Target size={16} /> Paso 1 de 1
                             </div>
                             <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-1px', lineHeight: '1.2' }}>¿Qué categorías usas más?</h1>
-                            <p style={{ color: '#666', fontSize: '15px', marginTop: '12px' }}>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginTop: '12px' }}>
                                 Hemos preseleccionado las más comunes, pero puedes editarlas en cualquier momento.
                             </p>
                         </div>
@@ -142,8 +158,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => toggleCategory(cat.name)}
                                             style={{
-                                                background: isSelected ? 'rgba(129, 138, 248, 0.15)' : '#111',
-                                                border: isSelected ? '1px solid #818cf8' : '1px solid #222',
+                                                background: isSelected ? 'rgba(129, 138, 248, 0.15)' : 'var(--card-bg-light)',
+                                                border: isSelected ? '1px solid #818cf8' : '1px solid var(--border-color)',
                                                 padding: '16px',
                                                 borderRadius: '20px',
                                                 display: 'flex',
@@ -155,7 +171,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                             }}
                                         >
                                             <div style={{ fontSize: '28px' }}>{cat.emoji}</div>
-                                            <span style={{ fontSize: '14px', fontWeight: '600', color: isSelected ? '#fff' : '#888' }}>{cat.name}</span>
+                                            <span style={{ fontSize: '14px', fontWeight: '600', color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{cat.name}</span>
 
                                             {isSelected && (
                                                 <div style={{ position: 'absolute', top: '12px', right: '12px', color: '#818cf8' }}>
@@ -173,8 +189,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                 className="btn-primary"
                                 style={{
                                     width: '100%', height: '56px', fontSize: '18px',
-                                    background: selectedCategories.length === 0 ? '#333' : 'var(--accent-color)',
-                                    color: selectedCategories.length === 0 ? '#666' : '#fff',
+                                    background: selectedCategories.length === 0 ? 'var(--glass-border)' : 'var(--accent-color)',
+                                    color: selectedCategories.length === 0 ? 'var(--text-secondary)' : 'var(--text-primary)',
                                     pointerEvents: selectedCategories.length === 0 ? 'none' : 'auto'
                                 }}
                                 onClick={handleFinish}

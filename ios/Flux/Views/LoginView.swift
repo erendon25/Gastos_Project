@@ -3,64 +3,191 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isLoginMode = true
+    
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-            
-            // Logo / Branding
-            VStack(spacing: 16) {
-                Image(systemName: "bolt.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(Color(hex: "fca311"))
-                    .shadow(color: Color(hex: "fca311").opacity(0.4), radius: 20)
+        ScrollView {
+            VStack(spacing: 30) {
                 
-                Text("FLUX")
-                    .font(.system(size: 48, weight: .black, design: .default))
-                    .kerning(4)
-                    .foregroundColor(.white)
+                // Espacio superior
+                Spacer().frame(height: 60)
                 
-                Text("Finanza Inteligente")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.gray)
-                    .kerning(2)
-                    .textCase(.uppercase)
-            }
-            
-            Spacer()
-            
-            // Botón Face ID
-            Button(action: {
-                authViewModel.authenticateWithFaceID()
-            }) {
-                HStack(spacing: 16) {
-                    Image(systemName: "faceid")
-                        .font(.system(size: 24))
-                    Text("Ingresar con Face ID")
-                        .font(.headline)
-                        .fontWeight(.heavy)
+                // Logo / Branding
+                VStack(spacing: 12) {
+                    Image(systemName: "bolt.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 70, height: 70)
+                        .foregroundColor(Color(hex: "fca311"))
+                        .shadow(color: Color(hex: "fca311").opacity(0.4), radius: 20)
+                    
+                    Text("FLUX")
+                        .font(.system(size: 42, weight: .black, design: .default))
+                        .kerning(4)
+                        .foregroundColor(.white)
+                    
+                    Text(isLoginMode ? "Iniciar Sesión" : "Crear Cuenta")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.gray)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.white)
-                .foregroundColor(.black)
-                .cornerRadius(16)
-                .shadow(color: .white.opacity(0.1), radius: 10, y: 5)
+                
+                // Formulario de Email y Contraseña
+                VStack(spacing: 16) {
+                    // Campo Email
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Correo Electrónico")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        TextField("tu@correo.com", text: $email)
+                            .padding()
+                            .background(Color(hex: "1a1a1a"))
+                            .cornerRadius(12)
+                            .foregroundColor(.white)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                    
+                    // Campo Contraseña
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Contraseña")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        SecureField("••••••••", text: $password)
+                            .padding()
+                            .background(Color(hex: "1a1a1a"))
+                            .cornerRadius(12)
+                            .foregroundColor(.white)
+                    }
+                    
+                    // Botón Principal (Login o Registro)
+                    Button(action: {
+                        if !email.isEmpty && !password.isEmpty {
+                            if isLoginMode {
+                                authViewModel.loginWithEmail(email: email, pass: password)
+                            } else {
+                                authViewModel.registerWithEmail(email: email, pass: password)
+                            }
+                        }
+                    }) {
+                        Text(isLoginMode ? "Ingresar" : "Registrarse")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(hex: "fca311"))
+                            .cornerRadius(12)
+                            .shadow(color: Color(hex: "fca311").opacity(0.4), radius: 10, y: 5)
+                            .opacity((email.isEmpty || password.isEmpty) ? 0.5 : 1)
+                    }
+                    .disabled(email.isEmpty || password.isEmpty)
+                    .padding(.top, 10)
+                    
+                    // Alternar modo Login / Registro
+                    Button(action: {
+                        withAnimation {
+                            isLoginMode.toggle()
+                        }
+                    }) {
+                        Text(isLoginMode ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión")
+                            .font(.footnote)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                .padding(.horizontal, 30)
+                
+                // Inicios de sesión alternativos (Redes Sociales y Biometría)
+                if isLoginMode {
+                    VStack(spacing: 20) {
+                        HStack {
+                            Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 1)
+                            Text("o continúa con")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 1)
+                        }
+                        .padding(.horizontal, 30)
+                        
+                        // Botones de Redes Sociales
+                        HStack(spacing: 16) {
+                            // Botón de Google
+                            Button(action: {
+                                authViewModel.loginWithGoogle()
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "g.circle.fill") // Placeholder icon
+                                        .font(.system(size: 20))
+                                    Text("Google")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                            
+                            // Botón de Apple
+                            Button(action: {
+                                authViewModel.loginWithApple()
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "applelogo")
+                                        .font(.system(size: 20))
+                                    Text("Apple")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                        }
+                        .padding(.horizontal, 30)
+                        
+                        // Botón Face ID Secundario abajo
+                        Button(action: {
+                            authViewModel.authenticateWithFaceID()
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "faceid")
+                                    .font(.system(size: 20))
+                                Text("Inicia con Face ID")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white.opacity(0.05))
+                            .foregroundColor(Color(hex: "fca311"))
+                            .cornerRadius(12)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "fca311").opacity(0.5), lineWidth: 1))
+                        }
+                        .padding(.horizontal, 30)
+                    }
+                }
+                
+                // Mensajes de error en caso de fallar Face ID o Formulario
+                if !authViewModel.errorMessage.isEmpty {
+                    Text(authViewModel.errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
+                Spacer()
             }
-            .padding(.horizontal, 40)
-            
-            if !authViewModel.errorMessage.isEmpty {
-                Text(authViewModel.errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            Spacer()
-                .frame(height: 40)
         }
         .background(Color(hex: "0a0a0a").ignoresSafeArea())
     }

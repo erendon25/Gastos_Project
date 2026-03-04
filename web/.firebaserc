@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "gastos-110bb"
-  }
+  },
+  "targets": {
+    "gastos-110bb": {
+      "hosting": {
+        "default": [
+          "gastos-110bb"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

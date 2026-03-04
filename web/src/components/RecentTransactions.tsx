@@ -38,8 +38,8 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
     return (
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '16px' }}>
             <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', background, borderRadius: '16px' }}>
-                <motion.div style={{ opacity: opacityLeft, display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}><Edit2 size={16} /> <span style={{ fontWeight: 'bold', fontSize: '12px' }}>Editar</span></motion.div>
-                <motion.div style={{ opacity: opacityRight, display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}><span style={{ fontWeight: 'bold', fontSize: '12px' }}>Borrar</span> <Trash2 size={16} /></motion.div>
+                <motion.div style={{ opacity: opacityLeft, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}><Edit2 size={16} /> <span style={{ fontWeight: 'bold', fontSize: '12px' }}>Editar</span></motion.div>
+                <motion.div style={{ opacity: opacityRight, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}><span style={{ fontWeight: 'bold', fontSize: '12px' }}>Borrar</span> <Trash2 size={16} /></motion.div>
             </motion.div>
 
             <motion.div
@@ -56,24 +56,24 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
                         {item.collection?.includes('recurrentes') ? (
                             isPaid ? <CheckCircle size={20} color={isIncome ? '#4ade80' : '#818cf8'} /> : <Circle size={20} color="#333" />
                         ) : (
-                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${categoryData?.color || '#333'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                                {item.categoryEmoji ? <span>{item.categoryEmoji}</span> : (isIncome ? <TrendingUp size={16} color="#4ade80" /> : <Icon size={16} color={categoryData?.color || '#333'} />)}
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${categoryData?.color || 'var(--glass-border)'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                                {item.categoryEmoji ? <span>{item.categoryEmoji}</span> : (isIncome ? <TrendingUp size={16} color="#4ade80" /> : <Icon size={16} color={categoryData?.color || 'var(--glass-border)'} />)}
                             </div>
                         )}
                     </div>
                     <div>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: isPaid === false && item.collection?.includes('recurrentes') ? '#666' : '#fff' }}>{item.description || item.category}</p>
+                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: isPaid === false && item.collection?.includes('recurrentes') ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{item.description || item.category}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <p style={{ fontSize: '10px', color: '#666' }}>{item.category === 'Casa' && isIncome ? 'Ingresos' : item.category}</p>
+                            <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{item.category === 'Casa' && isIncome ? 'Ingresos' : item.category}</p>
                             <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>•</span>
-                            <p style={{ fontSize: '10px', color: '#444' }}>
+                            <p style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
                                 {item.date?.toDate().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })} • {item.date?.toDate().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontWeight: 'bold', fontSize: '14px', color: isPaid === false && item.collection?.includes('recurrentes') ? '#333' : (isIncome ? 'var(--income-color)' : '#fff') }}>
+                    <p style={{ fontWeight: 'bold', fontSize: '14px', color: isPaid === false && item.collection?.includes('recurrentes') ? 'var(--glass-border)' : (isIncome ? 'var(--income-color)' : 'var(--text-primary)') }}>
                         {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                     </p>
                 </div>

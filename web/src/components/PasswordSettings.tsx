@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { auth, db } from '../lib/firebase'
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth'
 import { Lock, User, Check, AlertCircle, Eye, EyeOff, Trash2, Coins, ChevronDown } from 'lucide-react'
-import { doc, deleteDoc, collection, getDocs, updateDoc } from 'firebase/firestore'
+import { doc, deleteDoc, collection, getDocs, updateDoc, query, where } from 'firebase/firestore'
 import { updateEmail } from 'firebase/auth'
 import { Share2, Moon, Sun, Mail } from 'lucide-react'
 
@@ -36,7 +36,24 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
     const [showPasswords, setShowPasswords] = useState(false)
     const [email, setEmail] = useState(auth.currentUser?.email || '')
-    const [isDarkTheme, setIsDarkTheme] = useState(true)
+    const [referralsCount, setReferralsCount] = useState(0)
+    const [unclaimedReferrals, setUnclaimedReferrals] = useState<any[]>([])
+    const [isDarkTheme, setIsDarkTheme] = useState(() => {
+        const storedTheme = localStorage.getItem('theme');
+        if (storedTheme) {
+            return storedTheme === 'dark';
+        }
+        return true;
+    });
+
+    // Validar en el primer renderizado, por si el body ya tiene la clase o falta.
+    useEffect(() => {
+        if (!isDarkTheme) {
+            document.body.classList.add('light-theme');
+        } else {
+            document.body.classList.remove('light-theme');
+        }
+    }, [isDarkTheme]);
 
     // Verificar si el usuario se registró con correo/contraseña
     const isPasswordUser = auth.currentUser?.providerData.some(p => p.providerId === 'password')
@@ -46,6 +63,23 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
             onUpdateDraft({ currentPassword, newPassword, confirmPassword, displayName });
         }
     }, [currentPassword, newPassword, confirmPassword, displayName, onUpdateDraft]);
+
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        const loadReferrals = async () => {
+            try {
+                const q = query(collection(db, 'referrals'), where('referrerId', '==', auth.currentUser!.uid), where('status', '==', 'completed'));
+                const snap = await getDocs(q);
+                setReferralsCount(snap.size);
+
+                const unclaimed = snap.docs.filter(d => !d.data().claimed).map(d => ({ id: d.id, ...d.data() }));
+                setUnclaimedReferrals(unclaimed);
+            } catch (e) {
+                console.error('Error fetching referrals', e);
+            }
+        };
+        loadReferrals();
+    }, []);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -85,6 +119,12 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
 
         if (newPassword !== confirmPassword) {
             setStatus({ type: 'error', message: 'Las nuevas contraseñas no coinciden' })
+            return
+        }
+
+        const isStrongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!isStrongPassword.test(newPassword)) {
+            setStatus({ type: 'error', message: 'La contraseña debe tener al menos 8 caracteres, 1 mayúscula, 1 minúscula y 1 número.' })
             return
         }
 
@@ -192,12 +232,19 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
     }
 
     const toggleTheme = () => {
-        setIsDarkTheme(!isDarkTheme)
-        alert("El tema claro estará disponible globalmente en una próxima actualización de accesibilidad.");
+        const newIsDark = !isDarkTheme;
+        setIsDarkTheme(newIsDark);
+        if (newIsDark) {
+            document.body.classList.remove('light-theme');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+        }
     }
 
     const handleShareLink = async () => {
-        const link = `https://app.flux.com/invite?ref=${auth.currentUser?.uid || 'user'}`;
+        const link = `${window.location.origin}/?ref=${auth.currentUser?.uid || 'user'}`;
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -214,28 +261,58 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
         }
     }
 
+    const handleClaimReferralReward = async () => {
+        if (!auth.currentUser || unclaimedReferrals.length < 3) return;
+
+        setLoading(true);
+        try {
+            const toClaim = unclaimedReferrals.slice(0, 3);
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+
+            let currentProUntil = user?.proUntil ? new Date(user.proUntil) : new Date();
+            if (currentProUntil < new Date()) {
+                currentProUntil = new Date();
+            }
+            currentProUntil.setDate(currentProUntil.getDate() + 30);
+
+            await updateDoc(userRef, {
+                proUntil: currentProUntil.toISOString()
+            });
+
+            const promises = toClaim.map(ref => updateDoc(doc(db, 'referrals', ref.id), { claimed: true, claimedAt: new Date().toISOString() }));
+            await Promise.all(promises);
+
+            alert('¡Felicidades! Has reclamado 1 mes de Flux PRO.');
+            setUnclaimedReferrals(prev => prev.slice(3));
+        } catch (e: any) {
+            console.error("Error reclamando recompensa:", e);
+            alert("Hubo un error al reclamar la recompensa.");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Perfil */}
-            <form onSubmit={handleUpdateProfile} className="premium-card" style={{ padding: '20px', background: '#161616', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#888' }}>
+            <form onSubmit={handleUpdateProfile} className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid var(--glass-border)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                     <User size={16} /> PERFIL DE USUARIO
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold' }}>NOMBRE PÚBLICO</label>
+                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>NOMBRE PÚBLICO</label>
                     <input
                         type="text"
                         placeholder="Tu nombre"
                         className="input-field"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        style={{ background: '#0a0a0a' }}
+                        style={{ background: 'var(--bg-color)' }}
                     />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Coins size={12} /> MONEDA PRINCIPAL
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -244,9 +321,9 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                             onChange={(e) => setSelectedCurrency(e.target.value)}
                             style={{
                                 width: '100%',
-                                background: '#0a0a0a',
-                                color: '#fff',
-                                border: '1px solid #333',
+                                background: 'var(--bg-color)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--glass-border)',
                                 borderRadius: '12px',
                                 padding: '12px',
                                 fontSize: '14px',
@@ -256,67 +333,133 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                             }}
                         >
                             {currencies.map(c => (
-                                <option key={c.code} value={c.code} style={{ background: '#111' }}>
+                                <option key={c.code} value={c.code} style={{ background: 'var(--card-bg-light)' }}>
                                     {c.name} ({c.symbol})
                                 </option>
                             ))}
                         </select>
-                        <ChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
+                        <ChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
                     </div>
                 </div>
                 <button type="submit" className="btn-primary" disabled={loading} style={{
                     padding: '12px',
                     fontSize: '13px',
-                    background: '#fff',
-                    color: '#000',
+                    background: 'var(--text-primary)',
+                    color: 'var(--bg-color)',
                     fontWeight: '800'
                 }}>
                     {loading ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
                 </button>
             </form>
 
-            {/* Referidos */}
-            <div className="premium-card" style={{ padding: '20px', background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ background: 'rgba(252, 163, 17, 0.1)', padding: '6px', borderRadius: '8px' }}>
-                        <Share2 size={16} color="#fca311" />
+            {/* Mostrar panel PRO si tiene proUntil activo, de lo contrario mostrar referidos */}
+            {user?.proUntil && new Date(user.proUntil) > new Date() ? (
+                <div className="premium-card" style={{ padding: '20px', background: 'linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, rgba(74, 222, 128, 0.05) 100%)', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid rgba(74, 222, 128, 0.3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: '#4ade80', padding: '6px', borderRadius: '8px' }}>
+                            <Check size={16} color="#000" />
+                        </div>
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>FLUX PRO ACTIVO</h3>
                     </div>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>PROGRAMA DE REFERIDOS</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        Disfruta de todos los beneficios de Flux PRO hasta el <strong>{new Date(user.proUntil).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                            <span>Tiempo restante</span>
+                            <span style={{ fontWeight: 'bold', color: '#4ade80' }}>
+                                {Math.ceil((new Date(user.proUntil).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} días
+                            </span>
+                        </div>
+                        <div style={{ height: '6px', background: 'var(--glass-bg)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{
+                                height: '100%',
+                                background: '#4ade80',
+                                width: `${Math.max(0, Math.min(100, (Math.ceil((new Date(user.proUntil).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) / 30) * 100))}%`,
+                                borderRadius: '3px'
+                            }} />
+                        </div>
+                    </div>
                 </div>
-                <p style={{ fontSize: '12px', color: '#aaa', lineHeight: '1.5' }}>
-                    Invita a tus amigos y obtén <strong>1 mes de Flux PRO gratis</strong> cuando 3 amigos realicen su primer registro con tu enlace.
-                </p>
-                <button
-                    type="button"
-                    onClick={handleShareLink}
-                    style={{
-                        padding: '12px',
-                        background: '#fca311',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '13px',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <Share2 size={16} /> COMPARTIR MI ENLACE
-                </button>
-            </div>
+            ) : (
+                <div className="premium-card" style={{ padding: '20px', background: 'linear-gradient(135deg, var(--card-bg-light) 0%, var(--card-bg) 100%)', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: 'rgba(252, 163, 17, 0.1)', padding: '6px', borderRadius: '8px' }}>
+                            <Share2 size={16} color="#fca311" />
+                        </div>
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>PROGRAMA DE REFERIDOS</h3>
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        Invita a tus amigos y obtén <strong>1 mes de Flux PRO gratis</strong> cuando 3 amigos se registren con tu enlace y agreguen su primer movimiento.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>AMIGOS REFERIDOS</span>
+                            <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--text-primary)' }}>{referralsCount}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>PROGRESO</span>
+                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: unclaimedReferrals.length >= 3 ? '#4ade80' : '#fca311' }}>{unclaimedReferrals.length} / 3</span>
+                        </div>
+                    </div>
+
+                    {unclaimedReferrals.length >= 3 ? (
+                        <button
+                            type="button"
+                            onClick={handleClaimReferralReward}
+                            disabled={loading}
+                            style={{
+                                padding: '12px',
+                                background: '#4ade80',
+                                color: '#000',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '13px',
+                                fontWeight: '900',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                animation: 'pulse 2s infinite'
+                            }}
+                        >
+                            {loading ? 'RECLAMANDO...' : '¡RECLAMAR 1 MES PRO!'}
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={handleShareLink}
+                            style={{
+                                padding: '12px',
+                                background: '#fca311',
+                                color: 'var(--accent-color)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '13px',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <Share2 size={16} /> {unclaimedReferrals.length > 0 ? `FALTAN ${3 - unclaimedReferrals.length}` : 'COMPARTIR MI ENLACE'}
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Configuración de Pantalla/Tema */}
-            <div className="premium-card" style={{ padding: '20px', background: '#161616', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#888' }}>
+            <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid var(--glass-border)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                     {isDarkTheme ? <Moon size={16} /> : <Sun size={16} />} APARIENCIA
                 </h3>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>Tema Oscuro</span>
-                        <span style={{ fontSize: '11px', color: '#666' }}>Interfaz principal</span>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Tema Oscuro</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Interfaz principal</span>
                     </div>
                     {/* Toggle Switch */}
                     <button
@@ -325,7 +468,7 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                         style={{
                             width: '44px',
                             height: '24px',
-                            background: isDarkTheme ? '#4ade80' : '#444',
+                            background: isDarkTheme ? '#4ade80' : 'border-color',
                             borderRadius: '12px',
                             position: 'relative',
                             border: 'none',
@@ -336,7 +479,7 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                         <div style={{
                             width: '20px',
                             height: '20px',
-                            background: '#fff',
+                            background: 'var(--text-primary)',
                             borderRadius: '50%',
                             position: 'absolute',
                             top: '2px',
@@ -351,41 +494,41 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
             {/* Email */}
             <form onSubmit={handleUpdateEmail} className="premium-card" style={{
                 padding: '20px',
-                background: '#161616',
+                background: 'var(--card-bg-light)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px',
-                border: '1px solid rgba(255,255,255,0.05)',
+                border: '1px solid var(--glass-border)',
                 opacity: isPasswordUser ? 1 : 0.6
             }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#888' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                     <Mail size={16} /> CORREO ELECTRÓNICO
                 </h3>
 
                 {!isPasswordUser ? (
-                    <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <p style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                    <div style={{ padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
                             Has iniciado sesión con un proveedor externo. Tu correo está vinculado a esa plataforma.
                         </p>
                     </div>
                 ) : (
                     <>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold' }}>CORREO ACTUAL</label>
+                            <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>CORREO ACTUAL</label>
                             <input
                                 type="email"
                                 className="input-field"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                style={{ background: '#0a0a0a' }}
+                                style={{ background: 'var(--bg-color)' }}
                                 required
                             />
                         </div>
                         <button type="submit" className="btn-primary" disabled={loading} style={{
                             padding: '12px',
-                            background: 'linear-gradient(135deg, #333 0%, #111 100%)',
-                            color: '#fff',
-                            border: '1px solid #444',
+                            background: 'linear-gradient(135deg, var(--glass-border) 0%, var(--card-bg-light) 100%)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid border-color',
                             fontSize: '13px',
                             fontWeight: '800'
                         }}>
@@ -398,64 +541,64 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
             {/* Contraseña */}
             <form onSubmit={handleChangePassword} className="premium-card" style={{
                 padding: '20px',
-                background: '#161616',
+                background: 'var(--card-bg-light)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px',
-                border: '1px solid rgba(255,255,255,0.05)',
+                border: '1px solid var(--glass-border)',
                 opacity: isPasswordUser ? 1 : 0.6
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: '#888' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                         <Lock size={16} /> SEGURIDAD
                     </h3>
                     {isPasswordUser && (
-                        <button type="button" onClick={() => setShowPasswords(!showPasswords)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => setShowPasswords(!showPasswords)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                             {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                     )}
                 </div>
 
                 {!isPasswordUser ? (
-                    <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <p style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                    <div style={{ padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
                             Has iniciado sesión con un proveedor externo. La gestión de contraseña se realiza desde tu cuenta de Google/Apple.
                         </p>
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold' }}>CONTRASEÑA ACTUAL</label>
+                            <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>CONTRASEÑA ACTUAL</label>
                             <input
                                 type={showPasswords ? "text" : "password"}
                                 className="input-field"
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
-                                style={{ background: '#0a0a0a' }}
+                                style={{ background: 'var(--bg-color)' }}
                                 required
                             />
                         </div>
-                        <div style={{ height: '1px', background: '#222', margin: '4px 0' }}></div>
+                        <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }}></div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                             <div style={{ flex: 1, minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold' }}>NUEVA CONTRASEÑA</label>
+                                <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>NUEVA CONTRASEÑA</label>
                                 <input
                                     type={showPasswords ? "text" : "password"}
                                     className="input-field"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    style={{ background: '#0a0a0a' }}
+                                    style={{ background: 'var(--bg-color)' }}
                                     required
                                 />
                             </div>
                             <div style={{ flex: 1, minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ fontSize: '11px', color: '#555', fontWeight: 'bold' }}>REPETIR CONTRASEÑA</label>
+                                <label style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>REPETIR CONTRASEÑA</label>
                                 <input
                                     type={showPasswords ? "text" : "password"}
                                     className="input-field"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    style={{ background: '#0a0a0a' }}
+                                    style={{ background: 'var(--bg-color)' }}
                                     required
                                 />
                             </div>
@@ -480,9 +623,9 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
 
                 <button type="submit" className="btn-primary" disabled={loading || !isPasswordUser} style={{
                     padding: '12px',
-                    background: isPasswordUser ? 'linear-gradient(135deg, #333 0%, #111 100%)' : '#222',
-                    color: isPasswordUser ? '#fff' : '#444',
-                    border: '1px solid #444',
+                    background: isPasswordUser ? 'linear-gradient(135deg, var(--glass-border) 0%, var(--card-bg-light) 100%)' : 'var(--border-color)',
+                    color: isPasswordUser ? 'var(--text-primary)' : 'border-color',
+                    border: '1px solid border-color',
                     fontSize: '13px',
                     fontWeight: '800'
                 }}>
@@ -504,7 +647,7 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                     <Trash2 size={20} />
                     <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>ZONA DE PELIGRO</h3>
                 </div>
-                <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     Al eliminar tu cuenta, todos tus datos financieros serán borrados de forma permanente. No podrás recuperar esta información.
                 </p>
                 <button
@@ -513,7 +656,7 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                     style={{
                         padding: '16px',
                         background: '#ef4444',
-                        color: '#fff',
+                        color: 'var(--text-primary)',
                         border: 'none',
                         borderRadius: '16px',
                         fontSize: '14px',

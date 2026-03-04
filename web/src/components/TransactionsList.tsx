@@ -67,10 +67,10 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                 position: 'absolute', inset: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '0 24px', background, borderRadius: '16px'
             }}>
-                <motion.div style={{ opacity: opacityLeft, display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}>
+                <motion.div style={{ opacity: opacityLeft, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                     <Edit2 size={20} /> <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Editar</span>
                 </motion.div>
-                <motion.div style={{ opacity: opacityRight, display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}>
+                <motion.div style={{ opacity: opacityRight, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Eliminar</span> <Trash2 size={20} />
                 </motion.div>
             </motion.div>
@@ -87,9 +87,9 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                     x,
                     margin: 0,
                     padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
-                    background: isPaid === false ? (isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.02)') : '#161616',
+                    background: isPaid === false ? (isPastDue ? 'rgba(239, 68, 68, 0.08)' : 'var(--glass-bg)') : 'var(--card-bg)',
                     border: '1px solid',
-                    borderColor: isPaid === false ? (isPastDue ? '#ef4444' : 'rgba(255, 255, 255, 0.05)') : '#222',
+                    borderColor: isPaid === false ? (isPastDue ? '#ef4444' : 'var(--glass-bg)') : 'var(--border-color)',
                     cursor: 'pointer',
                     position: 'relative',
                     touchAction: 'none'
@@ -107,13 +107,13 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                             </div>
                         ) : (
                             <div style={{
-                                width: '44px', height: '44px', borderRadius: '14px', background: `${categoryData?.color || '#333'}20`,
+                                width: '44px', height: '44px', borderRadius: '14px', background: `${categoryData?.color || 'var(--glass-border)'}20`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
                             }}>
                                 {item.categoryEmoji ? (
                                     <span>{item.categoryEmoji}</span>
                                 ) : (
-                                    isIncome ? <TrendingUp size={20} color="#4ade80" /> : <Icon size={20} color={categoryData?.color || '#333'} />
+                                    isIncome ? <TrendingUp size={20} color="#4ade80" /> : <Icon size={20} color={categoryData?.color || 'var(--glass-border)'} />
                                 )}
                             </div>
                         )}
@@ -123,9 +123,9 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                                 {item.description || item.category}
                             </p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <p style={{ fontSize: '11px', color: '#666' }}>{item.category}</p>
+                                <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{item.category}</p>
                                 <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>•</span>
-                                <p style={{ fontSize: '10px', color: '#444' }}>
+                                <p style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
                                     {item.date?.toDate().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })} • {item.date?.toDate().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
@@ -135,7 +135,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                     <div style={{ textAlign: 'right' }}>
                         <p style={{
                             fontSize: '16px', fontWeight: '900',
-                            color: isPaid === false ? (isPastDue ? '#ef4444' : '#666') : (isIncome ? 'var(--income-color)' : '#fff')
+                            color: isPaid === false ? (isPastDue ? '#ef4444' : 'var(--text-secondary)') : (isIncome ? 'var(--income-color)' : 'var(--text-primary)')
                         }}>
                             {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                         </p>
@@ -143,20 +143,20 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                 </div>
 
                 {type === 'debt' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--glass-bg)' }}>
                         {item.startDate && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--glass-bg)', padding: '4px 8px', borderRadius: '6px' }}>
                                 <Info size={12} color="#666" />
-                                <span style={{ fontSize: '10px', color: '#666' }}>Inició: {item.startDate.toDate().toLocaleDateString('es-PE')}</span>
+                                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Inició: {item.startDate.toDate().toLocaleDateString('es-PE')}</span>
                             </div>
                         )}
                         {item.dueDate && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: '6px',
-                                background: isPastDue ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.03)',
+                                background: isPastDue ? 'rgba(239, 68, 68, 0.1)' : 'var(--glass-bg)',
                                 padding: '4px 8px', borderRadius: '6px'
                             }}>
-                                <Calendar size={12} color={isPastDue ? '#ef4444' : '#666'} />
+                                <Calendar size={12} color={isPastDue ? '#ef4444' : 'var(--text-secondary)'} />
                                 <span style={{ fontSize: '10px', color: isPastDue ? '#ef4444' : '#999', fontWeight: 'bold' }}>
                                     Vence: {item.dueDate.toDate().toLocaleDateString('es-PE')}
                                 </span>
@@ -317,8 +317,8 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
         await deleteDoc(doc(db, 'users', auth.currentUser.uid, item.collection, item.id));
     };
 
-    if (loading) return <p style={{ textAlign: 'center', color: '#666' }}>Cargando...</p>;
-    if (transactions.length === 0) return <p style={{ textAlign: 'center', color: '#444', marginTop: '20px' }}>No hay registros.</p>;
+    if (loading) return <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando...</p>;
+    if (transactions.length === 0) return <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', marginTop: '20px' }}>No hay registros.</p>;
 
     const curNow = new Date();
     const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
@@ -339,16 +339,16 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div className="premium-card" style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                background: 'var(--glass-bg)',
+                border: '1px solid var(--glass-bg)',
                 padding: '16px',
                 marginBottom: '16px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>Total {type === 'income' ? 'Ingresos' : 'Gastos'} {type === 'recurring' ? 'Fijos' : ''}</span>
-                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>{currency.symbol} {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Total {type === 'income' ? 'Ingresos' : 'Gastos'} {type === 'recurring' ? 'Fijos' : ''}</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : 'var(--text-primary)' }}>{currency.symbol} {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <AnimatePresence>

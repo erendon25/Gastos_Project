@@ -26,7 +26,7 @@ const DebtSection: React.FC<DebtSectionProps> = ({ currency = { code: 'PEN', sym
     const progressPercent = (totalPaid / debt.totalAmount) * 100;
 
     return (
-        <div className="premium-card" style={{ background: '#1a1a1a', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="premium-card" style={{ background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>{debt.name}</h3>
@@ -43,12 +43,12 @@ const DebtSection: React.FC<DebtSectionProps> = ({ currency = { code: 'PEN', sym
                     <span>Progreso de pago</span>
                     <span>{progressPercent.toFixed(1)}%</span>
                 </div>
-                <div style={{ height: '8px', width: '100%', background: '#333', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ height: '8px', width: '100%', background: 'var(--glass-border)', borderRadius: '4px', overflow: 'hidden' }}>
                     <div
                         style={{
                             height: '100%',
                             width: `${progressPercent}%`,
-                            background: '#fff',
+                            background: 'var(--text-primary)',
                             borderRadius: '4px',
                             transition: 'width 1s ease-in-out'
                         }}
@@ -56,7 +56,7 @@ const DebtSection: React.FC<DebtSectionProps> = ({ currency = { code: 'PEN', sym
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', paddingTop: '8px', borderTop: '1px solid #222' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
                 <div>
                     <p style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cuota Mensual</p>
                     <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {debt.monthlyQuota}</p>
