@@ -87,8 +87,29 @@ function App() {
     }, 350);
   };
 
+  // Called by Login component after successful verification or login
+  const handleLoginSuccess = async () => {
+    if (auth.currentUser) {
+      try {
+        await auth.currentUser.reload();
+        // Force state update with the refreshed user object
+        setUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser));
+      } catch {
+        setUser(auth.currentUser);
+      }
+    }
+  };
+
   useEffect(() => {
-    getRedirectResult(auth).catch(console.error);
+    // Handle Apple/Google redirect result
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch(console.error);
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       // Show splash for at least 1.8s for premium feel
@@ -131,7 +152,20 @@ function App() {
     </div>
   );
 
-  if (!user) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}><Login onLogin={() => { }} /></div>
+  if (!user) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}><Login onLogin={handleLoginSuccess} /></div>
+
+  // Block access if email/password user hasn't verified their email
+  // Use auth.currentUser for live emailVerified status (not cached state)
+  const isEmailProvider = user.providerData?.some((p: any) => p.providerId === 'password');
+  const emailVerified = auth.currentUser?.emailVerified ?? user.emailVerified;
+  if (isEmailProvider && !emailVerified) {
+    return (
+      <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}>
+        <Login onLogin={handleLoginSuccess} />
+      </div>
+    );
+  }
+
 
   const renderContent = () => {
     switch (activeTab) {

@@ -3,9 +3,11 @@ import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, 
 import RecentTransactions from './RecentTransactions';
 import CategoryBudget from './CategoryBudget';
 import { auth, db } from '../lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isSubscriptionItem } from '../lib/subscriptionUtils';
+import { usePremium } from '../lib/usePremium';
+import ProBanner from './ProBanner';
 
 interface DashboardProps {
   onOpenSettings?: () => void;
@@ -29,6 +31,7 @@ interface Totals {
 
 const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, changeMonth, onNavigate, onAddFromCategory }) => {
   const now = new Date();
+  const { isPremium } = usePremium();
   const [totals, setTotals] = useState<Totals>({
     income: 0,
     expenses: 0,
@@ -56,20 +59,32 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const [breakdownType, setBreakdownType] = useState<'income' | 'expense' | 'balance' | null>(null);
 
-  // Savings state
-  const savingsKey = `savings_goal_${auth.currentUser?.uid}`;
-  const [savingsGoal, setSavingsGoal] = useState<number>(() => {
-    const stored = localStorage.getItem(savingsKey);
-    return stored ? parseFloat(stored) : 0;
-  });
+  // Savings state - persisted in Firestore
+  const [savingsGoal, setSavingsGoal] = useState<number>(0);
+  const [savingsLoading, setSavingsLoading] = useState(true);
   const [editingSavings, setEditingSavings] = useState(false);
   const [savingsInput, setSavingsInput] = useState('');
 
-  const handleSaveSavings = () => {
+  // Load savings goal from Firestore on mount
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    const savingsRef = doc(db, 'users', auth.currentUser.uid, 'config', 'savings_goal');
+    const unsub = onSnapshot(savingsRef, (snap) => {
+      if (snap.exists()) {
+        setSavingsGoal(snap.data().amount || 0);
+      } else {
+        setSavingsGoal(0);
+      }
+      setSavingsLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveSavings = async () => {
     const val = parseFloat(savingsInput);
-    if (!isNaN(val) && val >= 0) {
-      setSavingsGoal(val);
-      localStorage.setItem(savingsKey, String(val));
+    if (!isNaN(val) && val >= 0 && auth.currentUser) {
+      const savingsRef = doc(db, 'users', auth.currentUser.uid, 'config', 'savings_goal');
+      await setDoc(savingsRef, { amount: val }, { merge: true });
     }
     setEditingSavings(false);
     setSavingsInput('');
@@ -376,12 +391,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
         </div>
       </div>
 
+      {/* PRO Banner — only for non-premium users */}
+      {!isPremium && <ProBanner />}
+
       {/* Savings Card */}
       {(() => {
         const savingsProgress = savingsGoal > 0 ? Math.min(100, (balance / savingsGoal) * 100) : 0;
         const savingsColor = savingsProgress >= 100 ? '#4ade80' : savingsProgress >= 60 ? '#facc15' : '#f87171';
         return (
-          <div className="premium-card" style={{ background: 'linear-gradient(135deg, #0d1a10 0%, #0a0a0a 100%)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px' }}>
+          <div className="premium-card" style={{ background: 'linear-gradient(135deg, #0d1a10 0%, #0a0a0a 100%)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <PiggyBank size={18} color="#4ade80" />
