@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc, where, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
 import { CATEGORIES } from '../lib/categories';
 import { CheckCircle, Circle, Calendar, Info, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { isSubscriptionItem } from '../lib/subscriptionUtils';
+import { getFiscalRange } from '../lib/dateUtils';
 import AddExpenseModal from './AddExpenseModal';
 
 interface TransactionsListProps {
@@ -177,12 +178,8 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
     useEffect(() => {
         if (!auth.currentUser) return;
         setLoading(true);
-
         const uid = auth.currentUser.uid;
-        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
-        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
-        const startTimestamp = Timestamp.fromDate(fiscalStart);
-        const endTimestamp = Timestamp.fromDate(fiscalEnd);
+        const { start: fiscalStart, end: fiscalEnd, startTimestamp, endTimestamp } = getFiscalRange(currentDate);
 
         let primaryCollection = 'gastos';
         let secondaryCollection: string | null = null;

@@ -5,6 +5,7 @@ import { Tv, Trash2, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AddExpenseModal from './AddExpenseModal';
 import { SERVICE_LOGOS, isSubscriptionItem } from '../lib/subscriptionUtils';
+import { getFiscalRange } from '../lib/dateUtils';
 
 interface Subscription {
     id: string;
@@ -35,7 +36,7 @@ const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?
         const q = query(collection(db, 'users', uid, 'gastos_recurrentes'), orderBy('date', 'desc'));
 
         const unsub = onSnapshot(q, (snap) => {
-            const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
+            const { end: fiscalEnd } = getFiscalRange(currentDate);
 
             const docs = snap.docs.map(doc => {
                 const data = doc.data();

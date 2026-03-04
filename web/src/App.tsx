@@ -90,7 +90,7 @@ function App() {
   const [presetCategory, setPresetCategory] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
-    if (today.getDate() >= 25) {
+    if (today.getDate() >= 24) {
       return new Date(today.getFullYear(), today.getMonth() + 1, 1);
     }
     return today;

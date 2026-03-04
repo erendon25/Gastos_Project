@@ -8,6 +8,7 @@ import { collection, onSnapshot, query, doc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isSubscriptionItem } from '../lib/subscriptionUtils';
 import { usePremium } from '../lib/usePremium';
+import { getFiscalRange } from '../lib/dateUtils';
 import ProBanner from './ProBanner';
 
 interface DashboardProps {
@@ -111,9 +112,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   useEffect(() => {
     if (!auth.currentUser) return;
+    const { start: fiscalStart, end: fiscalEnd } = getFiscalRange(currentDate);
 
-    const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
-    const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
     const isPastMonth = currentDate.getFullYear() < now.getFullYear() || (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() < now.getMonth());
     const isCurrentMonth = currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
     const isFutureMonth = currentDate.getFullYear() > now.getFullYear() || (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() > now.getMonth());
@@ -286,8 +286,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
-  const fiscalStartLabel = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25);
-  const fiscalEndLabel = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24);
+  const { start: fiscalStartLabel, end: fiscalEndLabel } = getFiscalRange(currentDate);
   const rangeLabel = `${fiscalStartLabel.getDate()} ${fiscalStartLabel.toLocaleString('es-ES', { month: 'short' })} - ${fiscalEndLabel.getDate()} ${fiscalEndLabel.toLocaleString('es-ES', { month: 'short' })}`;
 
   const exportToCSV = () => {

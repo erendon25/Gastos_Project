@@ -3,6 +3,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot, query, where, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { getFiscalRange } from '../lib/dateUtils';
 
 interface CategoryBudgetProps {
     currentDate: Date;
@@ -26,8 +27,7 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
         if (!auth.currentUser) return;
 
         const uid = auth.currentUser.uid;
-        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
-        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+        const { startTimestamp, endTimestamp } = getFiscalRange(currentDate);
 
         // 1. Fetch Categories
         const unsubCats = onSnapshot(collection(db, 'users', uid, 'categorias'), (snap) => {
@@ -46,8 +46,8 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
         // 3. Fetch Regular Expenses (Only non-recurring)
         const qExp = query(
             collection(db, 'users', uid, 'gastos'),
-            where('date', '>=', Timestamp.fromDate(fiscalStart)),
-            where('date', '<=', Timestamp.fromDate(fiscalEnd))
+            where('date', '>=', startTimestamp),
+            where('date', '<=', endTimestamp)
         );
 
         const unsubExp = onSnapshot(qExp, (snap) => {
