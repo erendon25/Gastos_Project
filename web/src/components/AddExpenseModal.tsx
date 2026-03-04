@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, ChevronRight, Repeat, CheckCircle, Circle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import SpeechButton from './SpeechButton';
 import { CATEGORIES as DEFAULT_CATEGORIES, getCategoryByText } from '../lib/categories';
@@ -13,6 +13,8 @@ interface AddExpenseModalProps {
     presetCategory?: string | null;
     draftData?: any;
     onUpdateDraft?: (data: any) => void;
+    user?: any;
+    currency?: { code: string, symbol: string };
 }
 
 // Helper to avoid timezone shifts when parsing YYYY-MM-DD
@@ -29,7 +31,7 @@ const formatLocalDate = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType, presetCategory, draftData, onUpdateDraft }) => {
+const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, editType, presetCategory, draftData, onUpdateDraft, user, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [amount, setAmount] = useState(editItem ? editItem.amount.toString() : (draftData?.amount || ''));
     const [description, setDescription] = useState(editItem ? editItem.description : (draftData?.description || ''));
     const [type, setType] = useState<'expense' | 'income' | 'debt'>(() => {
@@ -54,6 +56,19 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         return DEFAULT_CATEGORIES[0].name;
     });
     const [autoDebit, setAutoDebit] = useState(editItem?.autoDebit ?? (draftData?.autoDebit ?? true));
+    const [selectedDate, setSelectedDate] = useState(() => {
+        if (editItem?.date) return formatLocalDate(editItem.date.toDate());
+        if (draftData?.date) return draftData.date;
+        return formatLocalDate(new Date());
+    });
+    const [selectedTime, setSelectedTime] = useState(() => {
+        if (editItem?.date) {
+            const d = editItem.date.toDate();
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    });
 
     const [totalLoanAmount, setTotalLoanAmount] = useState(editItem?.totalLoanAmount?.toString() || (draftData?.totalLoanAmount || ''));
     const [paidQuotas, setPaidQuotas] = useState(editItem?.paidQuotas?.toString() || (draftData?.paidQuotas || '0'));
@@ -147,12 +162,18 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
             amount: parseFloat(amount),
             description,
             category,
-            categoryEmoji, // Guardamos el emoji para mostrarlo en el historial
+            categoryEmoji,
             isRecurring: type === 'debt' ? true : isRecurring,
             autoDebit: type === 'debt' ? false : (isRecurring ? autoDebit : false),
             paid: editItem ? editItem.paid : (type === 'income' ? (!isRecurring) : (isRecurring && autoDebit)),
             recurringDay: isRecurring ? parseInt(recurringDay) : null
         };
+
+        // Date Handling
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const [hours, mins] = selectedTime.split(':').map(Number);
+        const finalDate = new Date(year, month - 1, day, hours, mins);
+        data.date = Timestamp.fromDate(finalDate);
 
         if (type === 'debt') {
             data.startDate = Timestamp.fromDate(parseLocalDate(startDate));
@@ -202,13 +223,31 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 await updateDoc(docRef, data);
             } else {
                 let collectionName = 'gastos';
+                const isPro = user?.isPro || false;
+
                 if (type === 'income') {
                     collectionName = isRecurring ? 'ingresos_recurrentes' : 'ingresos';
                 }
                 else if (type === 'debt') {
+                    if (!isPro) {
+                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'prestamos')));
+                        if (snap.size >= 1) {
+                            alert('Límite de la versión Gratis alcanzado: Solo puedes tener 1 deuda o seguro. ¡Actualízate a Flux PRO para deudas ilimitadas!');
+                            return;
+                        }
+                    }
                     collectionName = 'prestamos';
                 }
-                else if (isRecurring) collectionName = 'gastos_recurrentes';
+                else if (isRecurring) {
+                    if (!isPro) {
+                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
+                        if (snap.size >= 3) {
+                            alert('Límite de la versión Gratis alcanzado: Solo puedes tener 3 suscripciones o gastos fijos automatizados. ¡Pásate a Flux PRO!');
+                            return;
+                        }
+                    }
+                    collectionName = 'gastos_recurrentes';
+                }
 
                 data.date = serverTimestamp();
                 await addDoc(collection(db, 'users', auth.currentUser.uid, collectionName), data);
@@ -353,17 +392,46 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                         <input
                             type="text"
-                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : "¿En qué gastaste?"}
+                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : (presetCategory ? "¿Detalle o local?" : "¿En qué gastaste?")}
                             className="input-field"
                             value={description}
                             onChange={(e) => {
-                                setDescription(e.target.value);
-                                if (type !== 'income') {
-                                    const detected = getCategoryByText(e.target.value);
-                                    setCategory(detected.name);
+                                const val = e.target.value;
+                                setDescription(val);
+                                if (type !== 'income' && !presetCategory && val.length > 2) {
+                                    const normalizedText = val.toLowerCase();
+                                    const match = allCategories.find((cat: any) => {
+                                        const nameMatch = normalizedText.includes(cat.name.toLowerCase());
+                                        const keywordMatch = cat.keywords?.some((k: string) => normalizedText.includes(k.toLowerCase()));
+                                        return nameMatch || keywordMatch;
+                                    });
+                                    if (match) {
+                                        setCategory(match.name);
+                                    }
                                 }
                             }} required
                         />
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>Fecha</label>
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    style={{ background: 'none', border: 'none', color: '#fff', fontSize: '13px', outline: 'none' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '10px', color: '#666', marginLeft: '4px' }}>Hora</label>
+                                <input
+                                    type="time"
+                                    value={selectedTime}
+                                    onChange={(e) => setSelectedTime(e.target.value)}
+                                    style={{ background: 'none', border: 'none', color: '#fff', fontSize: '13px', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
 
                         {type !== 'income' && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -397,11 +465,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                         <div>
                                             <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Monto Préstamo Total</label>
-                                            <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder="S/ 0.00" />
+                                            <input type="number" step="any" value={totalLoanAmount} onChange={(e) => setTotalLoanAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px' }} placeholder={`${currency.symbol} 0.00`} />
                                         </div>
                                         <div>
                                             <label style={{ fontSize: '10px', color: '#666', marginBottom: '4px', display: 'block' }}>Saldo Restante</label>
-                                            <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder="S/ 0.00" />
+                                            <input type="number" step="any" value={remainingAmount} onChange={(e) => setRemainingAmount(e.target.value)} className="input-field" style={{ padding: '8px', fontSize: '12px', borderColor: '#441111' }} placeholder={`${currency.symbol} 0.00`} />
                                         </div>
                                     </div>
                                 )}

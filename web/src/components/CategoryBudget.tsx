@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, onSnapshot, query, where, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
 
 interface CategoryBudgetProps {
     currentDate: Date;
@@ -17,7 +18,9 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
     // Press & Swipe Logic
     const startY = useRef<number>(0);
+    const startX = useRef<number>(0);
     const isPressing = useRef<boolean>(false);
+    const swipeDirection = useRef<'h' | 'v' | null>(null);
 
     useEffect(() => {
         if (!auth.currentUser) return;
@@ -85,31 +88,54 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
     const handleTouchStart = (id: string, e: React.TouchEvent) => {
         startY.current = e.touches[0].clientY;
+        startX.current = e.touches[0].clientX;
         isPressing.current = true;
+        swipeDirection.current = null;
         setActiveId(id);
     };
 
     const handleTouchMove = (id: string, e: React.TouchEvent) => {
         if (!isPressing.current) return;
+
         const currentY = e.touches[0].clientY;
-        const diff = startY.current - currentY;
-        // Dampen the movement
-        setYOffset({ [id]: -diff * 0.5 });
+        const currentX = e.touches[0].clientX;
+        const diffY = startY.current - currentY;
+        const diffX = startX.current - currentX;
+
+        // Determine direction on first significant movement
+        if (!swipeDirection.current) {
+            if (Math.abs(diffX) > 10) {
+                swipeDirection.current = 'h';
+                isPressing.current = false; // Allow horizontal scroll
+                setActiveId(null);
+                return;
+            } else if (Math.abs(diffY) > 10) {
+                swipeDirection.current = 'v';
+            } else {
+                return; // Not enough movement yet
+            }
+        }
+
+        if (swipeDirection.current === 'v') {
+            // Dampen the movement
+            setYOffset({ [id]: -diffY * 0.5 });
+        }
     };
 
     const handleTouchEnd = (catId: string, catName: string, budget: number, e: React.TouchEvent) => {
         const endY = e.changedTouches[0].clientY;
-        const diff = startY.current - endY;
+        const diffY = startY.current - endY;
 
-        if (isPressing.current) {
-            if (diff > 80) { // Swipe up
+        if (isPressing.current && swipeDirection.current === 'v') {
+            if (diffY > 80) { // Swipe up
                 setEditingBudget({ id: catId, name: catName, current: budget });
                 setNewBudgetValue(budget.toString());
-            } else if (diff < -80) { // Swipe down
+            } else if (diffY < -80) { // Swipe down
                 onAddExpense(catName);
             }
         }
         isPressing.current = false;
+        swipeDirection.current = null;
         setActiveId(null);
         setYOffset({});
     };
@@ -148,7 +174,7 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
                             border: '1px solid',
                             borderStyle: hasBudget ? 'dashed' : 'solid',
                             overflow: 'hidden',
-                            touchAction: 'none'
+                            touchAction: 'pan-x'
                         }}
                     >
                         {/* Fill Progress */}
@@ -167,10 +193,21 @@ const CategoryBudget: React.FC<CategoryBudgetProps> = ({ currentDate, onAddExpen
 
                         {/* Content */}
                         <div style={{ zIndex: 1, textAlign: 'center' }}>
+                            {percent >= 100 && hasBudget && (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    style={{ position: 'absolute', top: 8, right: 8 }}
+                                >
+                                    <AlertTriangle size={16} color="#ef4444" />
+                                </motion.div>
+                            )}
                             <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>{cat.emoji}</span>
                             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{spent.toLocaleString()}</p>
                             {hasBudget && (
-                                <p style={{ fontSize: '10px', color: '#666' }}>{Math.round(percent)}% de {budget}</p>
+                                <p style={{ fontSize: '10px', color: percent >= 100 ? '#ef4444' : '#666', fontWeight: percent >= 100 ? 'bold' : 'normal' }}>
+                                    {Math.round(percent)}% de {budget}
+                                </p>
                             )}
                             <p style={{ fontSize: '10px', color: '#444', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</p>
                         </div>

@@ -11,6 +11,11 @@ import AddExpenseModal from './components/AddExpenseModal'
 import SubscriptionsSection from './components/SubscriptionsSection'
 import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from './lib/firebase'
+import Onboarding from './components/Onboarding'
+import TutorialOverlay from './components/TutorialOverlay'
+import UpgradeModal from './components/UpgradeModal'
 
 const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) => void }> = ({ currentDate, onChange }) => {
   const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
@@ -61,6 +66,9 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'categories' | 'profile'>('categories')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [currency, setCurrency] = useState<{ code: string, symbol: string }>({ code: 'PEN', symbol: 'S/' })
   const [presetCategory, setPresetCategory] = useState<string | null>(null)
   const [currentDate, setCurrentDate] = useState(() => {
     const today = new Date();
@@ -72,6 +80,7 @@ function App() {
   const [draftExpense, setDraftExpense] = useState<any>(null)
   const [draftCategories, setDraftCategories] = useState<any>(null)
   const [draftProfile, setDraftProfile] = useState<any>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
@@ -101,17 +110,41 @@ function App() {
   };
 
   useEffect(() => {
-    // Handle Apple/Google redirect result
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-        }
-      })
-      .catch(console.error);
+    getRedirectResult(auth).catch(console.error);
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setShowOnboarding(!userData.onboardingCompleted);
+            const isCreator = currentUser.email === 'erickrendon18@gmail.com';
+            const userIsPro = isCreator || userData.isPro || false;
+            const userTutorialCompleted = userData.tutorialCompleted || false;
+            const userCurrency = userData.currency || { code: 'PEN', symbol: 'S/' };
+
+            setCurrency(userCurrency);
+            setUser({ ...currentUser, isPro: userIsPro, tutorialCompleted: userTutorialCompleted, currency: userCurrency });
+
+            if (!userTutorialCompleted && userData.onboardingCompleted) {
+              setShowTutorial(true);
+            }
+          } else {
+            setShowOnboarding(true);
+            setUser({ ...currentUser, isPro: currentUser.email === 'erickrendon18@gmail.com', tutorialCompleted: false, currency: { code: 'PEN', symbol: 'S/' } });
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          setShowOnboarding(false);
+          setUser({ ...currentUser, isPro: currentUser.email === 'erickrendon18@gmail.com' });
+        }
+      } else {
+        setShowOnboarding(false);
+      }
+
       // Show splash for at least 1.8s for premium feel
       setTimeout(() => {
         setLoading(false);
@@ -167,6 +200,8 @@ function App() {
   }
 
 
+  if (showOnboarding) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh', position: 'relative' }}><Onboarding onComplete={() => setShowOnboarding(false)} /></div>
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
@@ -180,6 +215,9 @@ function App() {
               setPresetCategory(cat);
               setShowAddModal(true);
             }}
+            user={user}
+            onUpgrade={() => setShowUpgrade(true)}
+            currency={currency}
           />
         );
       case 'expenses':
@@ -191,7 +229,7 @@ function App() {
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="expense" currentDate={currentDate} />
+              <TransactionsList type="expense" currentDate={currentDate} currency={currency} />
             </div>
           </div>
         );
@@ -204,7 +242,7 @@ function App() {
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="recurring" currentDate={currentDate} />
+              <TransactionsList type="recurring" currentDate={currentDate} currency={currency} />
             </div>
           </div>
         );
@@ -217,7 +255,7 @@ function App() {
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="debt" currentDate={currentDate} />
+              <TransactionsList type="debt" currentDate={currentDate} currency={currency} />
             </div>
           </div>
         );
@@ -230,7 +268,7 @@ function App() {
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
             <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="income" currentDate={currentDate} />
+              <TransactionsList type="income" currentDate={currentDate} currency={currency} />
             </div>
           </div>
         );
@@ -242,7 +280,7 @@ function App() {
               <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Gestiona tus servicios digitales y membresías.</p>
             </div>
             <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <SubscriptionsSection currentDate={currentDate} />
+            <SubscriptionsSection currentDate={currentDate} user={user} onUpgrade={() => setShowUpgrade(true)} currency={currency} />
           </div>
         );
       default:
@@ -321,8 +359,16 @@ function App() {
               style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
             >
               {settingsTab === 'categories' ?
-                <CategorySettings draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
-                <PasswordSettings draftData={draftProfile} onUpdateDraft={setDraftProfile} />
+                <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
+                <PasswordSettings
+                  draftData={draftProfile}
+                  onUpdateDraft={setDraftProfile}
+                  user={user}
+                  onCurrencyChange={(newCurrency) => {
+                    setCurrency(newCurrency);
+                    if (user) setUser({ ...user, currency: newCurrency });
+                  }}
+                />
               }
             </div>
           </motion.div>
@@ -417,6 +463,7 @@ function App() {
               setPresetCategory(null);
             }}
             presetCategory={presetCategory}
+            user={user}
             editType={
               activeTab === 'income' ? 'income' :
                 activeTab === 'recurring' ? 'recurring' :
@@ -424,7 +471,20 @@ function App() {
             }
             draftData={draftExpense}
             onUpdateDraft={setDraftExpense}
+            currency={currency}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTutorial && (
+          <TutorialOverlay onComplete={() => setShowTutorial(false)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showUpgrade && (
+          <UpgradeModal onClose={() => setShowUpgrade(false)} />
         )}
       </AnimatePresence>
 

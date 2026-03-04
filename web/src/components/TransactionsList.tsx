@@ -10,9 +10,10 @@ import AddExpenseModal from './AddExpenseModal';
 interface TransactionsListProps {
     type?: 'expense' | 'income' | 'recurring' | 'debt';
     currentDate: Date;
+    currency?: { code: string, symbol: string };
 }
 
-const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }: { item: any; type: string; currentDate: Date; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void }) => {
+const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, currency = { code: 'PEN', symbol: 'S/' } }: { item: any; type: string; currentDate: Date; onEdit: (item: any) => void; onDelete: (id: string) => void; togglePaid: (e: any, item: any) => void, currency?: { code: string, symbol: string } }) => {
     const x = useMotionValue(0);
 
     // Transform background colors and icons based on drag direction
@@ -54,7 +55,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
             onEdit(item);
         } else if (info.offset.x < -100) {
             if (window.confirm('¿Eliminar este registro?')) {
-                onDelete(item.id);
+                onDelete(item);
             }
         }
     };
@@ -121,7 +122,13 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
                             <p style={{ fontSize: '15px', fontWeight: 'bold' }}>
                                 {item.description || item.category}
                             </p>
-                            <p style={{ fontSize: '11px', color: '#666' }}>{item.category}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <p style={{ fontSize: '11px', color: '#666' }}>{item.category}</p>
+                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>•</span>
+                                <p style={{ fontSize: '10px', color: '#444' }}>
+                                    {item.date?.toDate().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })} • {item.date?.toDate().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -130,7 +137,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
                             fontSize: '16px', fontWeight: '900',
                             color: isPaid === false ? (isPastDue ? '#ef4444' : '#666') : (isIncome ? 'var(--income-color)' : '#fff')
                         }}>
-                            {isIncome ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
+                            {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                         </p>
                     </div>
                 </div>
@@ -162,7 +169,7 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid }
     );
 };
 
-const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', currentDate }) => {
+const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', currentDate, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -313,7 +320,21 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
     if (loading) return <p style={{ textAlign: 'center', color: '#666' }}>Cargando...</p>;
     if (transactions.length === 0) return <p style={{ textAlign: 'center', color: '#444', marginTop: '20px' }}>No hay registros.</p>;
 
-    const totalAmount = transactions.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+    const curNow = new Date();
+    const mKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    const isPastMonth = currentDate.getFullYear() < curNow.getFullYear() || (currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() < curNow.getMonth());
+    const isCurrentMonth = currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() === curNow.getMonth();
+    const isFutureMonth = currentDate.getFullYear() > curNow.getFullYear() || (currentDate.getFullYear() === curNow.getFullYear() && currentDate.getMonth() > curNow.getMonth());
+
+    const totalAmount = transactions.reduce((acc, item) => {
+        const amt = parseFloat(item.amount) || 0;
+        if (item._source === 'recurring' || item._source === 'debt') {
+            const isPaid = (item.paidMonths?.includes(mKey)) || (item.autoDebit && !isFutureMonth && (isPastMonth || (isCurrentMonth && curNow.getDate() >= (item.recurringDay || 1))));
+            if (isPaid) return acc + amt;
+            return acc;
+        }
+        return acc + amt;
+    }, 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -327,7 +348,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                 alignItems: 'center'
             }}>
                 <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>Total {type === 'income' ? 'Ingresos' : 'Gastos'} {type === 'recurring' ? 'Fijos' : ''}</span>
-                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>S/ {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: type === 'income' ? '#4ade80' : '#fff' }}>{currency.symbol} {totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <AnimatePresence>
@@ -340,6 +361,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                         onEdit={setEditingItem}
                         onDelete={handleDelete}
                         togglePaid={togglePaid}
+                        currency={currency}
                     />
                 ))}
             </AnimatePresence>
@@ -348,7 +370,8 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
                 <AddExpenseModal
                     onClose={() => setEditingItem(null)}
                     editItem={editingItem}
-                    editType={type}
+                    editType={editingItem.collection === 'ingresos' ? 'income' : 'expense'}
+                    currency={currency}
                 />
             )}
         </div>

@@ -6,7 +6,7 @@ import { Edit2, Trash2, TrendingUp, CheckCircle, Circle } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import AddExpenseModal from './AddExpenseModal';
 
-const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid, onNavigate }: { item: any; currentDate: Date; onEdit: (item: any) => void; onDelete: (item: any) => void; onTogglePaid: (e: any, item: any) => void; onNavigate?: (view: string) => void }) => {
+const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid, onNavigate, currency = { code: 'PEN', symbol: 'S/' } }: { item: any; currentDate: Date; onEdit: (item: any) => void; onDelete: (item: any) => void; onTogglePaid: (e: any, item: any) => void; onNavigate?: (view: string) => void; currency?: { code: string, symbol: string } }) => {
     const x = useMotionValue(0);
     const background = useTransform(x, [-100, 0, 100], ["#ef4444", "rgba(255, 255, 255, 0)", "#3b82f6"]);
     const opacityLeft = useTransform(x, [50, 100], [0, 1]);
@@ -63,12 +63,18 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
                     </div>
                     <div>
                         <p style={{ fontSize: '14px', fontWeight: 'bold', color: isPaid === false && item.collection?.includes('recurrentes') ? '#666' : '#fff' }}>{item.description || item.category}</p>
-                        <p style={{ fontSize: '10px', color: '#666' }}>{item.category === 'Casa' && isIncome ? 'Ingresos' : item.category}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <p style={{ fontSize: '10px', color: '#666' }}>{item.category === 'Casa' && isIncome ? 'Ingresos' : item.category}</p>
+                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>•</span>
+                            <p style={{ fontSize: '10px', color: '#444' }}>
+                                {item.date?.toDate().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })} • {item.date?.toDate().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <p style={{ fontWeight: 'bold', fontSize: '14px', color: isPaid === false && item.collection?.includes('recurrentes') ? '#333' : (isIncome ? 'var(--income-color)' : '#fff') }}>
-                        {isIncome ? '+' : '-'} S/ {parseFloat(item.amount).toFixed(2)}
+                        {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                     </p>
                 </div>
             </motion.div>
@@ -76,7 +82,7 @@ const SwipeableRecentItem = ({ item, currentDate, onEdit, onDelete, onTogglePaid
     );
 };
 
-const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNavigate }) => {
+const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void; currency?: { code: string, symbol: string } }> = ({ onNavigate, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
@@ -170,6 +176,7 @@ const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({
                         onDelete={handleDelete}
                         onTogglePaid={togglePaid}
                         onNavigate={onNavigate}
+                        currency={currency}
                     />
                 ))}
             </AnimatePresence>
@@ -179,6 +186,7 @@ const RecentTransactions: React.FC<{ onNavigate?: (view: string) => void }> = ({
                     onClose={() => setEditingItem(null)}
                     editItem={editingItem}
                     editType={editingItem.collection === 'ingresos' ? 'income' : 'expense'}
+                    currency={currency}
                 />
             )}
         </div>

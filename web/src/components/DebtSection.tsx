@@ -8,7 +8,11 @@ interface Debt {
     paidQuotas: number;
 }
 
-const DebtSection: React.FC = () => {
+interface DebtSectionProps {
+    currency?: { code: string, symbol: string };
+}
+
+const DebtSection: React.FC<DebtSectionProps> = ({ currency = { code: 'PEN', symbol: 'S/' } }) => {
     const debt: Debt = {
         name: "Préstamo Banco",
         startDate: "3 de Enero, 2026",
@@ -29,7 +33,7 @@ const DebtSection: React.FC = () => {
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Inició: {debt.startDate}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>Faltan: S/ {pendingAmount}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>Faltan: {currency.symbol} {pendingAmount}</p>
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{debt.paidQuotas} cuotas pagadas</p>
                 </div>
             </div>
@@ -55,11 +59,11 @@ const DebtSection: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', paddingTop: '8px', borderTop: '1px solid #222' }}>
                 <div>
                     <p style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cuota Mensual</p>
-                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>S/ {debt.monthlyQuota}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {debt.monthlyQuota}</p>
                 </div>
                 <div>
                     <p style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Monto Total</p>
-                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>S/ {debt.totalAmount}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {debt.totalAmount}</p>
                 </div>
             </div>
         </div>

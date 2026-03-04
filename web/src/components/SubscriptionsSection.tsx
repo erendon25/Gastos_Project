@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import { Tv, Trash2 } from 'lucide-react';
+import { Tv, Trash2, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AddExpenseModal from './AddExpenseModal';
 import { SERVICE_LOGOS, isSubscriptionItem } from '../lib/subscriptionUtils';
@@ -19,11 +19,12 @@ interface Subscription {
 }
 
 
-const SubscriptionsSection: React.FC<{ currentDate: Date }> = ({ currentDate }) => {
+const SubscriptionsSection: React.FC<{ currentDate: Date; user?: any; onUpgrade?: () => void; currency?: { code: string, symbol: string } }> = ({ currentDate, user, onUpgrade, currency = { code: 'PEN', symbol: 'S/' } }) => {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const isPro = user?.isPro || false;
 
     useEffect(() => {
         if (!auth.currentUser) return;
@@ -83,8 +84,55 @@ const SubscriptionsSection: React.FC<{ currentDate: Date }> = ({ currentDate }) 
     const isCurrentMonth = currentDate.getMonth() === now.getMonth() && currentDate.getFullYear() === now.getFullYear();
     const isPastMonth = currentDate.getFullYear() < now.getFullYear() || (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() < now.getMonth());
 
+    const handleAddClick = (draft?: any) => {
+        if (!isPro && subscriptions.length >= 3) {
+            if (onUpgrade) onUpgrade();
+            return;
+        }
+        if (draft) setEditingItem(draft);
+        else setShowAddModal(true);
+    };
+
     return (
         <div style={{ padding: '0 20px 24px 20px' }}>
+            {!isPro && (
+                <>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #818cf815 0%, #818cf805 100%)',
+                        border: '1px solid rgba(129, 138, 248, 0.2)',
+                        borderRadius: '20px',
+                        padding: '16px',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                    }}>
+                        <div style={{ background: '#818cf8', borderRadius: '10px', padding: '8px', color: '#000' }}>
+                            <Zap size={20} fill="currentColor" />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>Flux PRO</p>
+                            <p style={{ fontSize: '11px', color: '#888' }}>Las suscripciones automáticas son para usuarios PRO. Tus registros se guardarán como gastos simples.</p>
+                        </div>
+                    </div>
+                    <button style={{
+                        width: '100%',
+                        padding: '14px',
+                        background: 'white',
+                        color: 'black',
+                        borderRadius: '16px',
+                        fontWeight: '800',
+                        fontSize: '13px',
+                        marginBottom: '24px',
+                        border: 'none',
+                        cursor: 'pointer'
+                    }}
+                        onClick={onUpgrade}
+                    >
+                        PASAR A PRO ✨
+                    </button>
+                </>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                 {subscriptions.length === 0 ? (
@@ -92,7 +140,7 @@ const SubscriptionsSection: React.FC<{ currentDate: Date }> = ({ currentDate }) 
                         <Tv size={48} color="#333" style={{ marginBottom: '16px' }} />
                         <p style={{ color: '#666', fontSize: '14px' }}>No tienes suscripciones registradas.</p>
                         <button
-                            onClick={() => setShowAddModal(true)}
+                            onClick={() => handleAddClick()}
                             style={{ marginTop: '16px', padding: '10px 20px', borderRadius: '12px', background: '#333', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
                         >
                             Agregar la primera
@@ -159,7 +207,7 @@ const SubscriptionsSection: React.FC<{ currentDate: Date }> = ({ currentDate }) 
                                         </button>
                                     </div>
                                     <p style={{ fontSize: '16px', fontWeight: '900', color: isPaid ? '#fff' : '#666' }}>
-                                        S/ {parseFloat(sub.amount.toString()).toFixed(2)}
+                                        {currency.symbol} {parseFloat(sub.amount.toString()).toFixed(2)}
                                     </p>
                                     <span style={{ fontSize: '9px', color: '#444', textTransform: 'uppercase', letterSpacing: '1px' }}>Mensual</span>
                                 </div>
@@ -170,56 +218,61 @@ const SubscriptionsSection: React.FC<{ currentDate: Date }> = ({ currentDate }) 
             </div>
 
             {/* Quick add suggestions */}
-            {subscriptions.length > 0 && (
-                <div style={{ marginTop: '32px' }}>
-                    <p style={{ fontSize: '12px', color: '#666', fontWeight: 'bold', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Sugerencias</p>
-                    <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px' }}>
-                        {Object.entries(SERVICE_LOGOS).map(([name, style]) => (
-                            <button
-                                key={name}
-                                onClick={() => {
-                                    setEditingItem({
-                                        description: name.charAt(0).toUpperCase() + name.slice(1),
-                                        category: 'Ocio',
-                                        amount: '',
-                                        recurringDay: new Date().getDate(),
-                                        autoDebit: true
-                                    });
-                                }}
-                                style={{
-                                    flexShrink: 0,
-                                    padding: '12px 20px',
-                                    borderRadius: '16px',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.05)',
-                                    color: '#fff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <span>{style.emoji}</span>
-                                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{name.charAt(0).toUpperCase() + name.slice(1)}</span>
-                            </button>
-                        ))}
+            {
+                subscriptions.length > 0 && (
+                    <div style={{ marginTop: '32px' }}>
+                        <p style={{ fontSize: '12px', color: '#666', fontWeight: 'bold', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Sugerencias</p>
+                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px' }}>
+                            {Object.entries(SERVICE_LOGOS).map(([name, style]) => (
+                                <button
+                                    key={name}
+                                    onClick={() => {
+                                        handleAddClick({
+                                            description: name.charAt(0).toUpperCase() + name.slice(1),
+                                            category: 'Ocio',
+                                            amount: '',
+                                            recurringDay: new Date().getDate(),
+                                            autoDebit: true
+                                        });
+                                    }}
+                                    style={{
+                                        flexShrink: 0,
+                                        padding: '12px 20px',
+                                        borderRadius: '16px',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.05)',
+                                        color: '#fff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <span>{style.emoji}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{name.charAt(0).toUpperCase() + name.slice(1)}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {(editingItem || showAddModal) && (
-                <AddExpenseModal
-                    onClose={() => {
-                        setEditingItem(null);
-                        setShowAddModal(false);
-                    }}
-                    editItem={editingItem?.id ? editingItem : null}
-                    draftData={!editingItem?.id ? editingItem : null}
-                    editType="recurring"
-                    presetCategory="Ocio"
-                />
-            )}
-        </div>
+            {
+                (editingItem || showAddModal) && (
+                    <AddExpenseModal
+                        onClose={() => {
+                            setEditingItem(null);
+                            setShowAddModal(false);
+                        }}
+                        editItem={editingItem?.id ? editingItem : null}
+                        draftData={!editingItem?.id ? editingItem : null}
+                        editType="recurring"
+                        presetCategory="Ocio"
+                        user={user}
+                    />
+                )
+            }
+        </div >
     );
 };
 
