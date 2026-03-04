@@ -36,7 +36,7 @@ interface TotalsState {
 
 const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, changeMonth, onNavigate, onAddFromCategory, user, onUpgrade, currency = { code: 'PEN', symbol: 'S/' } }) => {
   const now = new Date();
-  const { isPremium } = usePremium();
+  usePremium();
   const [data, setData] = useState<TotalsState>({
     income: 0, expenses: 0, recurringIncome: 0, recurringExpenses: 0, debtsPaid: 0,
     cumulativeIncome: 0, cumulativeExpenses: 0, cumulativeIncomeRec: 0, cumulativeExpensesRec: 0, cumulativeDebts: 0

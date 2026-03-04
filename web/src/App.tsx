@@ -322,216 +322,210 @@ function App() {
   };
 
   return (
-    <div style={{
-      maxWidth: '450px',
-      margin: '0 auto',
-      minHeight: '100vh',
-      position: 'relative',
-      background: 'var(--bg-color)',
-      color: 'var(--text-primary)'
-    }}>
+    <div className="desktop-wrapper">
+      <div className="app-container">
 
-      {/* Settings Modal (Categorías) */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 150) setShowSettings(false);
-            }}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              width: '100%',
-              height: '100vh',
-              background: 'var(--bg-color)',
-              zIndex: 2000,
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
+        {/* Settings Modal (Categorías) */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 150) setShowSettings(false);
+              }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                width: '100%',
+                height: '100%',
+                background: 'var(--bg-color)',
+                zIndex: 2000,
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
 
-            {/* Draggable Header */}
-            <div style={{ padding: '24px 20px 0 20px', flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
-                  <X size={20} />
-                </button>
-              </div>
+              {/* Draggable Header */}
+              <div style={{ padding: '24px 20px 0 20px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                    <X size={20} />
+                  </button>
+                </div>
 
-              <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--card-bg-light)', padding: '4px', borderRadius: '14px' }}>
-                <button
-                  onClick={() => setSettingsTab('categories')}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                    background: settingsTab === 'categories' ? 'var(--border-color)' : 'transparent',
-                    color: settingsTab === 'categories' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    transition: 'all 0.2s'
-                  }}>Categorías</button>
-                <button
-                  onClick={() => setSettingsTab('profile')}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                    background: settingsTab === 'profile' ? 'var(--border-color)' : 'transparent',
-                    color: settingsTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                  }}>Perfil & Seguridad</button>
-                {user?.email === 'erickrendon18@gmail.com' && (
+                <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--card-bg-light)', padding: '4px', borderRadius: '14px' }}>
                   <button
-                    onClick={() => setSettingsTab('admin')}
+                    onClick={() => setSettingsTab('categories')}
                     style={{
                       flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                      background: settingsTab === 'admin' ? 'var(--border-color)' : 'transparent',
-                      color: settingsTab === 'admin' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                    }}>Admin</button>
-                )}
+                      background: settingsTab === 'categories' ? 'var(--border-color)' : 'transparent',
+                      color: settingsTab === 'categories' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      transition: 'all 0.2s'
+                    }}>Categorías</button>
+                  <button
+                    onClick={() => setSettingsTab('profile')}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                      background: settingsTab === 'profile' ? 'var(--border-color)' : 'transparent',
+                      color: settingsTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                    }}>Perfil & Seguridad</button>
+                  {user?.email === 'erickrendon18@gmail.com' && (
+                    <button
+                      onClick={() => setSettingsTab('admin')}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                        background: settingsTab === 'admin' ? 'var(--border-color)' : 'transparent',
+                        color: settingsTab === 'admin' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                      }}>Admin</button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Scrollable Content */}
-            <div
-              onPointerDown={(e) => e.stopPropagation()}
-              style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
-            >
-              {settingsTab === 'admin' ? <Superadmin /> :
-                settingsTab === 'categories' ?
-                  <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
-                  <PasswordSettings
-                    draftData={draftProfile}
-                    onUpdateDraft={setDraftProfile}
-                    user={user}
-                    onCurrencyChange={(newCurrency) => {
-                      setCurrency(newCurrency);
-                      if (user) setUser({ ...user, currency: newCurrency });
-                    }}
-                  />
-              }
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tab changing loader */}
-      <AnimatePresence>
-        {tabChanging && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 1500,
-              background: 'rgba(10,10,10,0.75)',
-              backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-              <div className="tab-loader" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Navegación por Pestañas */}
-      <div style={{ paddingBottom: '180px', overflowX: 'hidden' }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={pageVariants}
-            transition={pageTransition}
-          >
-            {renderContent()}
-          </motion.div>
+              {/* Scrollable Content */}
+              <div
+                onPointerDown={(e) => e.stopPropagation()}
+                style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
+              >
+                {settingsTab === 'admin' ? <Superadmin /> :
+                  settingsTab === 'categories' ?
+                    <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
+                    <PasswordSettings
+                      draftData={draftProfile}
+                      onUpdateDraft={setDraftProfile}
+                      user={user}
+                      onCurrencyChange={(newCurrency) => {
+                        setCurrency(newCurrency);
+                        if (user) setUser({ ...user, currency: newCurrency });
+                      }}
+                    />
+                }
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
-      </div>
 
-      {/* (+) Floating Action Button Container */}
-      {!showSettings && (
-        <div style={{
-          position: 'fixed',
-          bottom: '144px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '450px',
-          pointerEvents: 'none',
-          zIndex: 1001,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '0 24px'
-        }}>
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowAddModal(true)}
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '18px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
-              cursor: 'pointer',
-              pointerEvents: 'auto'
-            }}
-          >
-            <Plus size={28} color="#000000" strokeWidth={3} />
-          </motion.button>
+        {/* Tab changing loader */}
+        <AnimatePresence>
+          {tabChanging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'absolute', inset: 0, zIndex: 1500,
+                background: 'rgba(10,10,10,0.75)',
+                backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div className="tab-loader" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Navegación por Pestañas */}
+        <div style={{ paddingBottom: '180px', overflowX: 'hidden', height: '100%', overflowY: 'auto' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      )}
 
-      {!showSettings && <Dock activeTab={activeTab} onChange={handleTabChange} />}
-
-      <AnimatePresence>
-        {showAddModal && (
-          <AddExpenseModal
-            onClose={() => {
-              setShowAddModal(false);
-              setPresetCategory(null);
-            }}
-            presetCategory={presetCategory}
-            user={user}
-            editType={
-              activeTab === 'income' ? 'income' :
-                activeTab === 'recurring' ? 'recurring' :
-                  activeTab === 'debts' ? 'debt' : 'expense'
-            }
-            draftData={draftExpense}
-            onUpdateDraft={setDraftExpense}
-            currency={currency}
-          />
+        {/* (+) Floating Action Button Container */}
+        {!showSettings && (
+          <div className="fab-container" style={{
+            position: 'absolute',
+            bottom: '144px',
+            left: '0',
+            width: '100%',
+            pointerEvents: 'none',
+            zIndex: 1001,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '0 24px'
+          }}>
+            <motion.button
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowAddModal(true)}
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                pointerEvents: 'auto'
+              }}
+            >
+              <Plus size={28} color="#000000" strokeWidth={3} />
+            </motion.button>
+          </div>
         )}
-      </AnimatePresence>
 
-      <AnimatePresence>
-        {showTutorial && (
-          <TutorialOverlay onComplete={() => setShowTutorial(false)} />
-        )}
-      </AnimatePresence>
+        {!showSettings && <Dock activeTab={activeTab} onChange={handleTabChange} />}
 
-      <AnimatePresence>
-        {showUpgrade && (
-          <UpgradeModal onClose={() => setShowUpgrade(false)} />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {showAddModal && (
+            <AddExpenseModal
+              onClose={() => {
+                setShowAddModal(false);
+                setPresetCategory(null);
+              }}
+              presetCategory={presetCategory}
+              user={user}
+              editType={
+                activeTab === 'income' ? 'income' :
+                  activeTab === 'recurring' ? 'recurring' :
+                    activeTab === 'debts' ? 'debt' : 'expense'
+              }
+              draftData={draftExpense}
+              onUpdateDraft={setDraftExpense}
+              currency={currency}
+            />
+          )}
+        </AnimatePresence>
 
-      <InstallPWATutorial />
+        <AnimatePresence>
+          {showTutorial && (
+            <TutorialOverlay onComplete={() => setShowTutorial(false)} />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showUpgrade && (
+            <UpgradeModal onClose={() => setShowUpgrade(false)} />
+          )}
+        </AnimatePresence>
+
+        <InstallPWATutorial />
+
+      </div>
 
       <style>{`
         .loader { border: 3px solid #1a1a1a; border-top: 3px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
