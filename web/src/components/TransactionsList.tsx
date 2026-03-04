@@ -179,8 +179,8 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
         setLoading(true);
 
         const uid = auth.currentUser.uid;
-        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 25);
-        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 24, 23, 59, 59);
+        const fiscalStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0);
+        const fiscalEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
         const startTimestamp = Timestamp.fromDate(fiscalStart);
         const endTimestamp = Timestamp.fromDate(fiscalEnd);
 

@@ -215,18 +215,24 @@ input[type=number] {
 }
 
 @media (min-width: 768px) {
+  .desktop-wrapper {
+    padding: 0;
+  }
+
   .app-container {
-    height: 90vh;
-    max-height: 850px;
-    border-radius: 40px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
-    /* Mobile notch simulation */
-    outline: 12px solid #1a1a1a;
+    height: 100vh;
+    max-height: none;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    display: flex;
+    flex-direction: row;
   }
 
   .light-theme .app-container {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
-    outline: 12px solid #e5e5ea;
+    box-shadow: none;
+    outline: none;
   }
 
   /* Hide scrollbar for cleaner look on desktop */
@@ -245,13 +251,60 @@ input[type=number] {
 
   /* Adjust absolute positioning contexts within mobile app view for desktop framing */
   .fab-container {
-    position: absolute !important;
+    position: fixed !important;
+    bottom: 40px !important;
+    right: 40px !important;
+    left: auto !important;
+    transform: none !important;
   }
 
-  /* Prevent modals from bleeding outside the phone container on desktop */
-  .desktop-wrapper>.app-container>div[style*="position: fixed"] {
-    position: absolute !important;
-    border-radius: 40px;
-    overflow: hidden;
+  .desktop-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 40px;
+  }
+
+  .desktop-sidebar {
+    width: 250px;
+    height: 100vh;
+    border-right: 1px solid var(--border-color);
+    background: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    position: sticky;
+    top: 0;
+  }
+
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr;
+    gap: 32px;
+    padding-right: 32px;
+  }
+
+  .dashboard-layout-left {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .dashboard-layout-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .desktop-content-area {
+    height: 100%;
+    overflow-y: auto;
+    flex: 1;
+    padding-bottom: 180px;
   }
 }

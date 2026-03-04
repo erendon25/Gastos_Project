@@ -55,139 +55,202 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
     };
 
     return (
-        <div
-            ref={containerRef}
-            style={{
-                position: 'fixed',
-                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 'calc(100% - 32px)',
-                maxWidth: '430px',
-                height: '74px',
-                zIndex: 50,
-            }}
-        >
-            {/* SVG Background Layer defining the pill and the liquid hole cutout */}
-            <svg
+        <>
+            <div
+                ref={containerRef}
+                className="mobile-dock"
                 style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
+                    position: 'fixed',
+                    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 'calc(100% - 32px)',
+                    maxWidth: '430px',
+                    height: '74px',
+                    zIndex: 50,
                 }}
             >
-                <defs>
-                    <mask id="notch-mask">
-                        {/* White keeps the background solid */}
-                        <rect width="100%" height="100%" fill="white" />
-                        {/* Black perfectly punches the animated liquid hole */}
-                        <motion.path
-                            initial={false}
-                            animate={{ d: getCutoutPath(centerX) }}
-                            transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                            fill="black"
-                        />
-                    </mask>
-                </defs>
-                {/* The beautifully rounded pill background */}
-                <rect
-                    width="100%"
-                    height="100%"
-                    rx="24"
-                    fill={navBgColor}
-                    mask="url(#notch-mask)"
-                />
-            </svg>
+                {/* SVG Background Layer defining the pill and the liquid hole cutout */}
+                <svg
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        pointerEvents: 'none',
+                        zIndex: 0
+                    }}
+                >
+                    <defs>
+                        <mask id="notch-mask">
+                            {/* White keeps the background solid */}
+                            <rect width="100%" height="100%" fill="white" />
+                            {/* Black perfectly punches the animated liquid hole */}
+                            <motion.path
+                                initial={false}
+                                animate={{ d: getCutoutPath(centerX) }}
+                                transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                                fill="black"
+                            />
+                        </mask>
+                    </defs>
+                    {/* The beautifully rounded pill background */}
+                    <rect
+                        width="100%"
+                        height="100%"
+                        rx="24"
+                        fill={navBgColor}
+                        mask="url(#notch-mask)"
+                    />
+                </svg>
 
-            {/* Content Layer (Tabs + Floating Icons) */}
-            <div style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                justifyContent: 'space-around',
-                alignItems: 'center',
-                zIndex: 10,
-                padding: '0 4px',
-            }}>
-                {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
+                {/* Content Layer (Tabs + Floating Icons) */}
+                <div style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    alignItems: 'center',
+                    zIndex: 10,
+                    padding: '0 4px',
+                }}>
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
 
-                    return (
-                        <div
-                            key={tab.id}
-                            onClick={() => onChange(tab.id)}
-                            style={{
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flex: 1,
-                                height: '100%',
-                                cursor: 'pointer',
-                                WebkitTapHighlightColor: 'transparent'
-                            }}
-                        >
-                            {/* Floating Action Button purely animating Y-axis */}
-                            <motion.div
-                                animate={{
-                                    y: isActive ? -34 : 0,
-                                    scale: isActive ? 1.05 : 1
-                                }}
-                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        return (
+                            <div
+                                key={tab.id}
+                                onClick={() => onChange(tab.id)}
                                 style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '50%',
+                                    position: 'relative',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flex: 1,
+                                    height: '100%',
+                                    cursor: 'pointer',
+                                    WebkitTapHighlightColor: 'transparent'
+                                }}
+                            >
+                                {/* Floating Action Button purely animating Y-axis */}
+                                <motion.div
+                                    animate={{
+                                        y: isActive ? -34 : 0,
+                                        scale: isActive ? 1.05 : 1
+                                    }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                    style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '50%',
+                                        background: isActive ? activeItemColor : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 1,
+                                        border: 'none',
+                                        boxShadow: isActive ? `0 8px 16px ${activeItemColor}66` : 'none'
+                                    }}
+                                >
+                                    <Icon
+                                        size={isActive ? 22 : 22}
+                                        color={isActive ? activeIconColor : inactiveIconColor}
+                                        strokeWidth={isActive ? 2.5 : 2}
+                                    />
+                                </motion.div>
+
+                                {/* Animated Label */}
+                                <AnimatePresence>
+                                    {isActive && (
+                                        <motion.span
+                                            initial={{ opacity: 0, y: 15 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 15 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '8px',
+                                                fontSize: '10px',
+                                                fontWeight: '800',
+                                                color: 'var(--text-primary)',
+                                                pointerEvents: 'none',
+                                                letterSpacing: '0.2px'
+                                            }}
+                                        >
+                                            {tab.label}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Desktop Sidebar */}
+            <div className="desktop-sidebar">
+                <div style={{ marginBottom: '40px', paddingLeft: '16px' }}>
+                    <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-1px', color: 'var(--text-primary)' }}>FLUX</h1>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => onChange(tab.id)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    padding: '16px 20px',
+                                    borderRadius: '16px',
+                                    background: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                    border: '1px solid',
+                                    borderColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    textAlign: 'left'
+                                }}
+                            >
+                                <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '12px',
                                     background: isActive ? activeItemColor : 'transparent',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    zIndex: 1,
-                                    border: 'none',
-                                    boxShadow: isActive ? `0 8px 16px ${activeItemColor}66` : 'none'
-                                }}
-                            >
-                                <Icon
-                                    size={isActive ? 22 : 22}
-                                    color={isActive ? activeIconColor : inactiveIconColor}
-                                    strokeWidth={isActive ? 2.5 : 2}
-                                />
-                            </motion.div>
-
-                            {/* Animated Label */}
-                            <AnimatePresence>
-                                {isActive && (
-                                    <motion.span
-                                        initial={{ opacity: 0, y: 15 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 15 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: '8px',
-                                            fontSize: '10px',
-                                            fontWeight: '800',
-                                            color: 'var(--text-primary)',
-                                            pointerEvents: 'none',
-                                            letterSpacing: '0.2px'
-                                        }}
-                                    >
-                                        {tab.label}
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    );
-                })}
+                                    justifyContent: 'center'
+                                }}>
+                                    <Icon
+                                        size={20}
+                                        color={isActive ? activeIconColor : 'currentColor'}
+                                        strokeWidth={isActive ? 2.5 : 2}
+                                    />
+                                </div>
+                                <span style={{ fontSize: '15px', fontWeight: isActive ? '800' : '600' }}>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
-        </div>
+            <style>{`
+                @media (min-width: 768px) {
+                    .mobile-dock { display: none !important; }
+                }
+                @media (max-width: 767px) {
+                    .desktop-sidebar { display: none !important; }
+                }
+            `}</style>
+        </>
     );
 };
 

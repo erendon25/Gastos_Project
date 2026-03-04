@@ -434,8 +434,10 @@ function App() {
           )}
         </AnimatePresence>
 
+        {!showSettings && <Dock activeTab={activeTab} onChange={handleTabChange} />}
+
         {/* Navegación por Pestañas */}
-        <div style={{ paddingBottom: '180px', overflowX: 'hidden', height: '100%', overflowY: 'auto' }}>
+        <div className="desktop-content-area" style={{ overflowX: 'hidden' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -487,8 +489,6 @@ function App() {
             </motion.button>
           </div>
         )}
-
-        {!showSettings && <Dock activeTab={activeTab} onChange={handleTabChange} />}
 
         <AnimatePresence>
           {showAddModal && (

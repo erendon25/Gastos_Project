@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, ChevronRight, Repeat, CheckCircle, Circle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { addDoc, collection, serverTimestamp, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, onSnapshot, query, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import SpeechButton from './SpeechButton';
 import { CATEGORIES as DEFAULT_CATEGORIES, getCategoryByText } from '../lib/categories';
@@ -209,8 +209,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                     await addDoc(collection(db, 'users', auth.currentUser.uid, 'gastos'), {
                         ...data,
-                        description: `${data.description} (Excepción ${new Date().toLocaleString('es-ES', { month: 'short' })})`,
-                        date: serverTimestamp()
+                        description: `${data.description} (Excepción ${new Date().toLocaleString('es-ES', { month: 'short' })})`
                     });
                     return;
                 }
@@ -287,7 +286,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                     collectionName = 'gastos_recurrentes';
                 }
 
-                data.date = serverTimestamp();
                 await addDoc(collection(db, 'users', auth.currentUser.uid, collectionName), data);
 
                 // Lógica de referido para el primer gasto
