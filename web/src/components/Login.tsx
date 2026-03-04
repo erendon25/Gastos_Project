@@ -8,7 +8,7 @@ import {
 import { auth, googleProvider, appleProvider } from '../lib/firebase';
 
 const ACTION_CODE_SETTINGS = {
-    url: 'https://gastos-110bb.web.app/',
+    url: 'https://finanzasflux.com/',
     handleCodeInApp: false,
 };
 
