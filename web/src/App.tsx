@@ -234,22 +234,17 @@ function App() {
     </div>
   );
 
-  if (!user) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}><Login onLogin={handleLoginSuccess} /></div>
+  if (!user) return <Login onLogin={handleLoginSuccess} />
 
   // Block access if email/password user hasn't verified their email
   // Use auth.currentUser for live emailVerified status (not cached state)
   const isEmailProvider = user.providerData?.some((p: any) => p.providerId === 'password');
   const emailVerified = auth.currentUser?.emailVerified ?? user.emailVerified;
   if (isEmailProvider && !emailVerified) {
-    return (
-      <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh' }}>
-        <Login onLogin={handleLoginSuccess} />
-      </div>
-    );
+    return <Login onLogin={handleLoginSuccess} />;
   }
 
-
-  if (showOnboarding) return <div style={{ maxWidth: '450px', margin: '0 auto', background: 'var(--bg-color)', minHeight: '100vh', position: 'relative' }}><Onboarding onComplete={() => setShowOnboarding(false)} /></div>
+  if (showOnboarding) return <Onboarding onComplete={() => setShowOnboarding(false)} />
 
   const renderContent = () => {
     switch (activeTab) {

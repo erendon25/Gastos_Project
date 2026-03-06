@@ -13,7 +13,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-console.log("� Nuevo Firebase inicializado con ID:", firebaseConfig.projectId);
 
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {

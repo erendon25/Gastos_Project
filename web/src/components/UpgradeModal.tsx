@@ -20,7 +20,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
         // Directamente utilizamos el link de pago ya que MercadoPago bloquea CORS en Frontend
         // y usar el ACCESS TOKEN acá es una vulnerabilidad de seguridad grave.
         setTimeout(() => {
-            window.open('https://mpago.la/1M4ZuPH', '_blank');
+            window.open('https://mpago.la/1M4ZuPH', '_blank', 'noopener,noreferrer');
             setLoading(false);
         }, 600); // Pequeño delay visual para mejor UX
     };

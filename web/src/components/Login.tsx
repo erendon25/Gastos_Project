@@ -200,7 +200,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (verificationPending) {
         return (
             <div className="desktop-wrapper">
-                <div className="app-container" style={{ padding: '40px 30px', display: 'flex', flexDirection: 'column', gap: '28px', minHeight: '100vh', justifyContent: 'center', background: 'var(--bg-color)' }}>
+                <div className="app-container" style={{ maxWidth: '450px', width: '100%', margin: '0 auto', padding: '40px 30px', display: 'flex', flexDirection: 'column', gap: '28px', minHeight: '100vh', justifyContent: 'center', background: 'var(--bg-color)' }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{
                             width: '80px', height: '80px', borderRadius: '24px',
@@ -290,7 +290,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     // ── Pantalla de login / registro ────────────────────────────────────────
     return (
         <div className="desktop-wrapper">
-            <div className="app-container" style={{ padding: '40px 30px', display: 'flex', flexDirection: 'column', gap: '32px', minHeight: '100vh', justifyContent: 'center', background: 'var(--bg-color)' }}>
+            <div className="app-container" style={{ maxWidth: '450px', width: '100%', margin: '0 auto', padding: '40px 30px', display: 'flex', flexDirection: 'column', gap: '32px', minHeight: '100vh', justifyContent: 'center', background: 'var(--bg-color)' }}>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{
                         width: '80px', height: '80px', borderRadius: '24px',
@@ -375,7 +375,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button onClick={handleGoogleLogin} disabled={loading} className="input-field" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: '#1c1c1e', border: '1px solid var(--glass-border)', fontSize: '16px' }}>
+                    <button onClick={handleGoogleLogin} disabled={loading} className="input-field" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-color)', border: '1px solid var(--glass-border)', fontSize: '16px' }}>
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="G" />
                         Google
                     </button>

@@ -83,6 +83,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     return (
         <div className="desktop-wrapper" style={{ zIndex: 9999, position: 'fixed', inset: 0 }}>
             <div className="app-container" style={{
+                maxWidth: '450px',
+                width: '100%',
+                margin: '0 auto',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',

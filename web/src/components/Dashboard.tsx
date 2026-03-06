@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, X, PiggyBank, Pencil, Check, Zap, Download } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import RecentTransactions from './RecentTransactions';
 import CategoryBudget from './CategoryBudget';
 import { auth, db } from '../lib/firebase';
@@ -46,7 +46,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
   const [debts, setDebts] = useState<any[]>([]);
 
   const [expensesByCategory, setExpensesByCategory] = useState<Record<string, number>>({});
+  const [expensesByHour, setExpensesByHour] = useState<Record<number, number>>({});
   const [incomeByCategory, setIncomeByCategory] = useState<Record<string, number>>({});
+  const [analysisPage, setAnalysisPage] = useState(0);
 
   const [recurringExpensesList, setRecurringExpensesList] = useState<{ name: string, amt: number }[]>([]);
   const [subscriptionsList, setSubscriptionsList] = useState<{ name: string, amt: number }[]>([]);
@@ -121,12 +123,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
     const unsubExp = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'gastos')), (snap) => {
       let monthly = 0, total = 0;
       const catData: Record<string, number> = {};
+      const hourData: Record<number, number> = {};
+
       snap.docs.forEach(doc => {
         const d = doc.data();
         const amt = Number(d.amount) || 0;
-        const dt = d.date?.toDate();
+
+        // Use either date field or createdAt as fallback to ensure time exists
+        const dt = d.date?.toDate() || d.createdAt?.toDate();
+
         if (dt) {
           total += amt;
+
+          // History of hours across all records
+          const hour = dt.getHours();
+          hourData[hour] = (hourData[hour] || 0) + amt;
+
           if (dt >= fiscalStart && dt <= fiscalEnd) {
             monthly += amt;
             const cat = d.category || 'Otros';
@@ -134,8 +146,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
           }
         }
       });
+
       setData(prev => ({ ...prev, expenses: monthly, cumulativeExpenses: total }));
       setExpensesByCategory(catData);
+      setExpensesByHour(hourData);
     });
 
     const unsubInc = onSnapshot(query(collection(db, 'users', auth.currentUser.uid, 'ingresos')), (snap) => {
@@ -316,6 +330,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const chartColors = ['#fca311', '#818cf8', '#4ade80', '#f87171', '#a78bfa', '#f472b6', '#34d399'];
   const expensesChartData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  const hourlyChartData = Array.from({ length: 24 }, (_, i) => ({
+    name: `${i.toString().padStart(2, '0')}:00`,
+    value: expensesByHour[i] || 0
+  }));
 
   return (
     <div className="dashboard-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -642,51 +660,114 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
               )
             }
 
-            {/* Visual Analysis Chart (PieChart) moved from left column to right column */}
+            {/* Visual Analysis Chart */}
             {
-              expensesChartData.length > 0 && (
-                <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', border: '1px solid var(--glass-border)' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
-                  <div style={{ height: '220px', position: 'relative' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={expensesChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={90}
-                          paddingAngle={5}
-                          dataKey="value"
-                          stroke="none"
-                        >
-                          {expensesChartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
-                          contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
-                          itemStyle={{ color: 'var(--text-primary)' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* Center Label */}
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                      <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total Var.</p>
-                      <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
+              (expensesChartData.length > 0 || Object.keys(expensesByHour).length > 0) && (
+                <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Análisis de Gastos</h3>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: analysisPage === 0 ? 'var(--text-primary)' : 'var(--glass-border)', transition: 'background 0.3s' }} />
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: analysisPage === 1 ? 'var(--text-primary)' : 'var(--glass-border)', transition: 'background 0.3s' }} />
                     </div>
                   </div>
-                  {/* Legend */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
-                    {expensesChartData.slice(0, 5).map((entry, index) => (
-                      <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{entry.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                    {analysisPage === 0 ? 'En qué se te va el dinero este mes' : 'Horario de compras (Histórico)'}
+                  </p>
+
+                  <AnimatePresence mode="wait">
+                    {analysisPage === 0 ? (
+                      <motion.div
+                        key="page0"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        onDragEnd={(_e, { offset }) => {
+                          if (offset.x < -50) setAnalysisPage(1);
+                        }}
+                        style={{ cursor: 'grab' }}
+                        whileTap={{ cursor: 'grabbing' }}
+                      >
+                        <div style={{ height: '220px', position: 'relative' }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={expensesChartData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={90}
+                                paddingAngle={5}
+                                dataKey="value"
+                                stroke="none"
+                              >
+                                {expensesChartData.map((_entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
+                                contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
+                                itemStyle={{ color: 'var(--text-primary)' }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          {/* Center Label */}
+                          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                            <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total Var.</p>
+                            <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        {/* Legend */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
+                          {expensesChartData.slice(0, 5).map((entry, index) => (
+                            <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{entry.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="page1"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        onDragEnd={(_e, { offset }) => {
+                          if (offset.x > 50) setAnalysisPage(0);
+                        }}
+                        style={{ cursor: 'grab' }}
+                        whileTap={{ cursor: 'grabbing' }}
+                      >
+                        <div style={{ height: '220px', width: '100%' }}>
+                          <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={hourlyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} interval={3} />
+                              <YAxis tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val > 1000 ? (val / 1000).toFixed(1) + 'k' : val}`} />
+                              <Tooltip
+                                formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Histórico']}
+                                labelStyle={{ color: 'var(--text-secondary)' }}
+                                contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
+                                itemStyle={{ color: 'var(--text-primary)' }}
+                                cursor={{ fill: 'var(--glass-bg)' }}
+                              />
+                              <Bar dataKey="value" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Mide el total gastado por hora a lo largo de tu historial.</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )
             }

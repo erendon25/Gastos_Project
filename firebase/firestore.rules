@@ -9,15 +9,31 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       
-      // Permitimos la creación si no envían isPro, o si lo envían como false
-      // Permitimos la actualización si no envían isPro, o si su valor no cambia
-      allow write: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      // Permitimos la creación si no envían campos sensibles o son false
+      allow create: if request.auth != null && (request.auth.uid == userId || isSuperAdmin())
+                   && (!request.resource.data.keys().hasAny(['isPro', 'proUntil', 'isPremium']) 
+                       || (request.resource.data.get('isPro', false) == false 
+                           && request.resource.data.get('isPremium', false) == false));
+      
+      // Permitimos la actualización si no cambian campos de suscripción
+      allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin())
+                   && (isSuperAdmin() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isPro', 'proUntil', 'isPremium']));
       
       match /{collectionName}/{docId} {
-        allow read, write: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+        // Colecciones de datos de usuario (gastos, ingresos, etc) son editables por el dueño
+        // pero la subcolección 'premium' debe ser protegida
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isSuperAdmin())
+                         && (collectionName != 'premium' || isSuperAdmin());
+      }
+
+      // Regla específica para la subcolección de estatus premium
+      match /premium/status {
+        allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+        allow write: if isSuperAdmin(); // Solo admin (o functions que usan Admin SDK) pueden escribir aquí
       }
     }
     
+    // Reglas transversales para Superadmin (estadísticas globales)
     match /{path=**}/gastos/{docId} {
       allow read: if isSuperAdmin();
     }
