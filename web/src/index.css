@@ -4,7 +4,7 @@
   --card-bg-light: #1a1a1a;
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
-  --text-tertiary: #666666;
+  --text-tertiary: #888888;
   --accent-color: #ffffff;
   --income-color: #4ade80;
   --expense-color: #f87171;
@@ -13,6 +13,45 @@
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.05);
   --border-color: #222222;
+  --brand-color: #818cf8;
+}
+
+.settings-modal-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.settings-modal-content {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .settings-modal-wrapper {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+
+  .settings-modal-content {
+    max-width: 600px;
+    height: auto;
+    max-height: 85vh;
+    border-radius: 32px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
 }
 
 .light-theme {
@@ -278,9 +317,12 @@ input[type=number] {
 
   .dashboard-layout {
     display: grid;
-    grid-template-columns: 2fr 1.2fr;
-    gap: 32px;
-    padding-right: 32px;
+    grid-template-columns: minmax(400px, 1.2fr) minmax(350px, 1fr);
+    gap: 40px;
+    padding: 0;
+    align-items: start;
+    max-width: 1400px;
+    margin: 0 auto;
   }
 
   .dashboard-layout-left {
@@ -292,7 +334,13 @@ input[type=number] {
   .dashboard-layout-right {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 32px;
+  }
+
+  .dashboard-container {
+    padding: 40px !important;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 

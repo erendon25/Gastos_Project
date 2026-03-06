@@ -318,377 +318,379 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
   const expensesChartData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   return (
-    <div className="dashboard-container" style={{ padding: '24px 20px 150px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Branding & Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1px' }}>FLUX</h1>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <button onClick={exportToCSV} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Exportar a CSV">
-            <Download size={20} color="#666" />
-          </button>
-          <button onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <Settings size={20} color="#666" />
-          </button>
-          <button onClick={() => auth.signOut()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <LogOut size={20} color="#666" />
-          </button>
-        </div>
-      </div>
-
-      {/* Profile Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#262626', overflow: 'hidden' }}>
-            {auth.currentUser?.photoURL ? <img src={auth.currentUser.photoURL} alt="profile" style={{ width: '100%' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--glass-border)' }} />}
-          </div>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Hola,</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{auth.currentUser?.displayName || 'Usuario'}</p>
-              {user?.isPro ? (
-                <span style={{
-                  fontSize: '9px',
-                  fontWeight: '900',
-                  background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                  color: 'var(--accent-color)',
-                  padding: '2px 6px',
-                  borderRadius: '6px',
-                  textTransform: 'uppercase'
-                }}>PRO</span>
-              ) : (
-                <span style={{
-                  fontSize: '9px',
-                  fontWeight: 'bold',
-                  background: '#262626',
-                  color: 'var(--text-secondary)',
-                  padding: '2px 6px',
-                  borderRadius: '6px',
-                  textTransform: 'uppercase',
-                  border: '1px solid var(--glass-border)'
-                }}>FREE</span>
-              )}
-            </div>
+    <div className="dashboard-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '1400px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Branding & Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1px' }}>FLUX</h1>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button onClick={exportToCSV} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Exportar a CSV">
+              <Download size={20} color="#666" />
+            </button>
+            <button onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <Settings size={20} color="#666" />
+            </button>
+            <button onClick={() => auth.signOut()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <LogOut size={20} color="#666" />
+            </button>
           </div>
         </div>
-        {!user?.isPro && (
-          <button style={{
-            background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-            color: 'var(--accent-color)',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '8px 14px',
-            fontSize: '11px',
-            fontWeight: '900',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(251, 191, 36, 0.2)'
-          }}
-            onClick={onUpgrade}
-          >
-            <Zap size={14} fill="currentColor" />
-            MEJORAR
-          </button>
-        )}
-      </div>
 
-      {/* Month Navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '12px 16px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-        <button onClick={() => changeMonth(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronLeft size={20} />
-        </button>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', fontWeight: '800', textTransform: 'capitalize', color: 'var(--text-primary)' }}>{monthYearLabel}</p>
-          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>{rangeLabel}</p>
-        </div>
-        <button onClick={() => changeMonth(1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
-      <div className="dashboard-layout">
-        <div className="dashboard-layout-left">
-          {/* Main Balance Card */}
-          <div className="premium-card"
-            onClick={() => setBreakdownType('balance')}
-            style={{
-              background: 'var(--card-bg)',
-              border: '1px solid var(--border-color)',
-              textAlign: 'center',
-              padding: '32px 24px',
-              position: 'relative',
-              overflow: 'hidden',
-              cursor: 'pointer'
-            }}>
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(129, 138, 248, 0.05)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px', position: 'relative' }}>Saldo total disponible <span style={{ fontSize: 10, opacity: 0.5 }}>(Ver detalle)</span></p>
-            <h1 style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-1px', position: 'relative' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h1>
-          </div>
-
-          {/* Quick Summary Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div
-              className="premium-card"
-              onClick={(e) => handleClickNav('income', e)}
-              onPointerDown={() => handlePressStart('income')}
-              onPointerUp={handlePressEnd}
-              onPointerLeave={handlePressEnd}
-              style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <TrendingUp size={16} color="var(--income-color)" />
-                <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Ingresos</p>
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{currency.symbol} {totalIncome.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Mantener para ver</p>
+        {/* Profile Info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#262626', overflow: 'hidden' }}>
+              {auth.currentUser?.photoURL ? <img src={auth.currentUser.photoURL} alt="profile" style={{ width: '100%' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--glass-border)' }} />}
             </div>
-            <div
-              className="premium-card"
-              onClick={(e) => handleClickNav('recurring', e)}
-              onPointerDown={() => handlePressStart('expense')}
-              onPointerUp={handlePressEnd}
-              onPointerLeave={handlePressEnd}
-              style={{ background: 'var(--card-bg)', border: '1px solid rgba(248, 113, 113, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <TrendingDown size={16} color="var(--expense-color)" />
-                <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Egresos</p>
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{currency.symbol} {totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Diarios: {currency.symbol} {data.expenses.toLocaleString()}</p>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Fijos: {currency.symbol} {data.recurringExpenses.toLocaleString()}</p>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Suscrip.: {currency.symbol} {subscriptionsMonthly.toLocaleString()}</p>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Deudas: {currency.symbol} {data.debtsPaid.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Savings Card */}
-          {(() => {
-            const savingsProgress = savingsGoal > 0 ? Math.min(100, (balance / savingsGoal) * 100) : 0;
-            const savingsColor = savingsProgress >= 100 ? '#4ade80' : savingsProgress >= 60 ? '#facc15' : '#f87171';
-            return (
-              <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <PiggyBank size={18} color="#4ade80" />
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Meta de Ahorro</span>
-                  </div>
-                  {!editingSavings ? (
-                    <button
-                      onClick={() => { setSavingsInput(savingsGoal > 0 ? String(savingsGoal) : ''); setEditingSavings(true); }}
-                      style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
-                    >
-                      <Pencil size={12} /> Editar
-                    </button>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <span style={{ paddingLeft: '10px', color: 'var(--text-secondary)', fontSize: '13px' }}>{currency.symbol}</span>
-                        <input
-                          autoFocus
-                          type="number"
-                          inputMode="decimal"
-                          value={savingsInput}
-                          onChange={e => setSavingsInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleSaveSavings()}
-                          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '16px', padding: '8px 10px', width: '110px' }}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <button
-                        onClick={handleSaveSavings}
-                        style={{ background: '#4ade80', border: 'none', borderRadius: '8px', padding: '8px 12px', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700' }}
-                      >
-                        <Check size={14} /> OK
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {savingsGoal > 0 ? (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Balance actual</span>
-                      <span style={{ fontSize: '12px', color: savingsColor, fontWeight: '700' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div style={{ height: '8px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                      <div style={{ width: `${savingsProgress}%`, height: '100%', background: `linear-gradient(90deg, ${savingsColor}cc, ${savingsColor})`, borderRadius: '4px', transition: 'width 0.8s ease' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Meta: {currency.symbol} {savingsGoal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
-                      <span style={{ fontSize: '11px', color: savingsColor, fontWeight: '600' }}>{savingsProgress.toFixed(0)}% logrado</span>
-                    </div>
-                  </>
+            <div>
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Hola,</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{auth.currentUser?.displayName || 'Usuario'}</p>
+                {user?.isPro ? (
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: '900',
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                    color: 'var(--accent-color)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    textTransform: 'uppercase'
+                  }}>PRO</span>
                 ) : (
-                  <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '8px 0' }}>Toca "Editar" para definir tu meta de ahorro mensual</p>
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    background: '#262626',
+                    color: 'var(--text-secondary)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    textTransform: 'uppercase',
+                    border: '1px solid var(--glass-border)'
+                  }}>FREE</span>
                 )}
               </div>
-            );
-          })()}
-
-          {/* Recent Transactions */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Actividad Reciente</h3>
-              <button
-                onClick={() => onNavigate('recurring')}
-                style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Ver más
-              </button>
             </div>
-            <RecentTransactions onNavigate={onNavigate} currency={currency} />
           </div>
-
-          {/* Visual Analysis Chart (PieChart) */}
-          {
-            expensesChartData.length > 0 && (
-              <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', border: '1px solid var(--glass-border)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
-                <div style={{ height: '220px', position: 'relative' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expensesChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {expensesChartData.map((_entry, index) => (
-                          <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
-                        contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
-                        itemStyle={{ color: 'var(--text-primary)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {/* Center Label */}
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total Var.</p>
-                    <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
-                  </div>
-                </div>
-                {/* Legend */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
-                  {expensesChartData.slice(0, 5).map((entry, index) => (
-                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{entry.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          }
+          {!user?.isPro && (
+            <button style={{
+              background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+              color: 'var(--accent-color)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '8px 14px',
+              fontSize: '11px',
+              fontWeight: '900',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(251, 191, 36, 0.2)'
+            }}
+              onClick={onUpgrade}
+            >
+              <Zap size={14} fill="currentColor" />
+              MEJORAR
+            </button>
+          )}
         </div>
 
-        <div className="dashboard-layout-right">
-          {/* PRO Banner — only for non-premium users */}
-          {!user?.isPro && <ProBanner />}
-
-          {/* Category Budgets & Swipes */}
-          <div style={{ margin: '8px 0' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Categorías & Presupuestos
-              <span style={{ fontSize: '10px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(Desliza ↑ editar, ↓ gastar)</span>
-            </h3>
-            <CategoryBudget currentDate={currentDate} onAddExpense={onAddFromCategory} />
+        {/* Month Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--glass-bg)', padding: '12px 16px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+          <button onClick={() => changeMonth(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ChevronLeft size={20} />
+          </button>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', fontWeight: '800', textTransform: 'capitalize', color: 'var(--text-primary)' }}>{monthYearLabel}</p>
+            <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>{rangeLabel}</p>
           </div>
+          <button onClick={() => changeMonth(1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ChevronRight size={20} />
+          </button>
+        </div>
 
-          {/* Debt Progress Card */}
-          {
-            debts.length > 0 && (
-              <div className="premium-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {user?.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt="Profile"
-                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (nextSibling) nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      style={{
-                        display: user?.photoURL ? 'none' : 'flex',
-                        width: '40px', height: '40px', borderRadius: '50%', background: 'var(--brand-color)', color: 'white', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
-                      }}
-                    >
-                      {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>Deuda Total Restante</h3>
-                  </div>
-                  <p style={{ fontSize: '18px', fontWeight: '800', color: '#ef4444' }}>{currency.symbol} {totalRemainingDebt.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+        {/* PRO Banner — only for non-premium users, now full width strip on PC if needed */}
+        {!user?.isPro && <div style={{ marginBottom: '-8px' }}><ProBanner /></div>}
+
+        <div className="dashboard-layout">
+          <div className="dashboard-layout-left">
+            {/* Main Balance Card */}
+            <div className="premium-card"
+              onClick={() => setBreakdownType('balance')}
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                textAlign: 'center',
+                padding: '32px 24px',
+                position: 'relative',
+                overflow: 'hidden',
+                cursor: 'pointer'
+              }}>
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(129, 138, 248, 0.05)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px', position: 'relative' }}>Saldo total disponible <span style={{ fontSize: 10, opacity: 0.5 }}>(Ver detalle)</span></p>
+              <h1 style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-1px', position: 'relative' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h1>
+            </div>
+
+            {/* Quick Summary Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div
+                className="premium-card"
+                onClick={(e) => handleClickNav('income', e)}
+                onPointerDown={() => handlePressStart('income')}
+                onPointerUp={handlePressEnd}
+                onPointerLeave={handlePressEnd}
+                style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <TrendingUp size={16} color="var(--income-color)" />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Ingresos</p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {debts.map(debt => {
-                    const isInsurance = debt.debtSubtype === 'insurance';
-                    let percent = 0;
-                    let statusText = '';
-
-                    if (isInsurance) {
-                      const start = debt.startDate?.toDate();
-                      const end = debt.dueDate?.toDate();
-                      if (start && end) {
-                        const adjustedEnd = new Date(end);
-                        adjustedEnd.setHours(23, 59, 59, 999);
-                        const totalTime = adjustedEnd.getTime() - start.getTime();
-                        const elapsed = new Date().getTime() - start.getTime();
-                        percent = Math.max(0, Math.min(100, (elapsed / totalTime) * 100));
-                        statusText = `Vigencia: ${Math.floor(percent)}%`;
-                      }
-                    } else {
-                      const total = debt.totalLoanAmount || 0;
-                      const remaining = debt.remainingAmount || 0;
-                      const paid = Math.max(0, total - remaining);
-                      percent = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
-                      statusText = `${debt.paidQuotas} cuotas pagadas`;
-                    }
-
-                    return (
-                      <div key={debt.id} style={{ background: 'var(--glass-bg)', padding: '12px', borderRadius: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '500' }}>{debt.description || debt.category}</span>
-                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{statusText}</span>
-                        </div>
-                        <div style={{ height: '6px', background: 'var(--glass-bg)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ width: `${percent}%`, height: '100%', background: isInsurance ? '#4ade80' : '#ef4444', borderRadius: '3px', transition: 'width 1s ease-in-out' }} />
-                        </div>
-                        {!isInsurance && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{currency.symbol} {debt.remainingAmount?.toLocaleString()} restante</span>
-                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total: {currency.symbol} {debt.totalLoanAmount?.toLocaleString()}</span>
-                          </div>
-                        )}
-                        {isInsurance && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Inició: {debt.startDate?.toDate().toLocaleDateString()}</span>
-                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Fin: {debt.dueDate?.toDate().toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{currency.symbol} {totalIncome.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Mantener para ver</p>
+              </div>
+              <div
+                className="premium-card"
+                onClick={(e) => handleClickNav('recurring', e)}
+                onPointerDown={() => handlePressStart('expense')}
+                onPointerUp={handlePressEnd}
+                onPointerLeave={handlePressEnd}
+                style={{ background: 'var(--card-bg)', border: '1px solid rgba(248, 113, 113, 0.05)', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <TrendingDown size={16} color="var(--expense-color)" />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Egresos</p>
+                </div>
+                <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{currency.symbol} {totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Diarios: {currency.symbol} {data.expenses.toLocaleString()}</p>
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Fijos: {currency.symbol} {data.recurringExpenses.toLocaleString()}</p>
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Suscrip.: {currency.symbol} {subscriptionsMonthly.toLocaleString()}</p>
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Deudas: {currency.symbol} {data.debtsPaid.toLocaleString()}</p>
                 </div>
               </div>
-            )
-          }
+            </div>
+
+            {/* Recent Transactions */}
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Actividad Reciente</h3>
+                <button
+                  onClick={() => onNavigate('recurring')}
+                  style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Ver más
+                </button>
+              </div>
+              <RecentTransactions onNavigate={onNavigate} currency={currency} />
+            </div>
+          </div>
+
+          <div className="dashboard-layout-right">
+            {/* Category Budgets & Swipes */}
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Categorías & Presupuestos
+                <span style={{ fontSize: '10px', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(Desliza ↑ editar, ↓ gastar)</span>
+              </h3>
+              <CategoryBudget currentDate={currentDate} onAddExpense={onAddFromCategory} />
+            </div>
+
+            {/* Savings Card */}
+            {(() => {
+              const savingsProgress = savingsGoal > 0 ? Math.min(100, (balance / savingsGoal) * 100) : 0;
+              const savingsColor = savingsProgress >= 100 ? '#4ade80' : savingsProgress >= 60 ? '#facc15' : '#f87171';
+              return (
+                <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <PiggyBank size={18} color="#4ade80" />
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Meta de Ahorro</span>
+                    </div>
+                    {!editingSavings ? (
+                      <button
+                        onClick={() => { setSavingsInput(savingsGoal > 0 ? String(savingsGoal) : ''); setEditingSavings(true); }}
+                        style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+                      >
+                        <Pencil size={12} /> Editar
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          <span style={{ paddingLeft: '10px', color: 'var(--text-secondary)', fontSize: '13px' }}>{currency.symbol}</span>
+                          <input
+                            autoFocus
+                            type="number"
+                            inputMode="decimal"
+                            value={savingsInput}
+                            onChange={e => setSavingsInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveSavings()}
+                            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '16px', padding: '8px 10px', width: '110px' }}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSaveSavings}
+                          style={{ background: '#4ade80', border: 'none', borderRadius: '8px', padding: '8px 12px', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700' }}
+                        >
+                          <Check size={14} /> OK
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {savingsGoal > 0 ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Balance actual</span>
+                        <span style={{ fontSize: '12px', color: savingsColor, fontWeight: '700' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div style={{ height: '8px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <div style={{ width: `${savingsProgress}%`, height: '100%', background: `linear-gradient(90deg, ${savingsColor}cc, ${savingsColor})`, borderRadius: '4px', transition: 'width 0.8s ease' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Meta: {currency.symbol} {savingsGoal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                        <span style={{ fontSize: '11px', color: savingsColor, fontWeight: '600' }}>{savingsProgress.toFixed(0)}% logrado</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '8px 0' }}>Toca "Editar" para definir tu meta de ahorro mensual</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Debt Progress Card */}
+            {
+              debts.length > 0 && (
+                <div className="premium-card" style={{ background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {user?.photoURL ? (
+                        <img
+                          src={user.photoURL}
+                          alt="Profile"
+                          style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (nextSibling) nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        style={{
+                          display: user?.photoURL ? 'none' : 'flex',
+                          width: '40px', height: '40px', borderRadius: '50%', background: 'var(--brand-color)', color: 'white', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                        }}
+                      >
+                        {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>Deuda Total Restante</h3>
+                    </div>
+                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#ef4444' }}>{currency.symbol} {totalRemainingDebt.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {debts.map(debt => {
+                      const isInsurance = debt.debtSubtype === 'insurance';
+                      let percent = 0;
+                      let statusText = '';
+
+                      if (isInsurance) {
+                        const start = debt.startDate?.toDate();
+                        const end = debt.dueDate?.toDate();
+                        if (start && end) {
+                          const adjustedEnd = new Date(end);
+                          adjustedEnd.setHours(23, 59, 59, 999);
+                          const totalTime = adjustedEnd.getTime() - start.getTime();
+                          const elapsed = new Date().getTime() - start.getTime();
+                          percent = Math.max(0, Math.min(100, (elapsed / totalTime) * 100));
+                          statusText = `Vigencia: ${Math.floor(percent)}%`;
+                        }
+                      } else {
+                        const total = debt.totalLoanAmount || 0;
+                        const remaining = debt.remainingAmount || 0;
+                        const paid = Math.max(0, total - remaining);
+                        percent = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
+                        statusText = `${debt.paidQuotas} cuotas pagadas`;
+                      }
+
+                      return (
+                        <div key={debt.id} style={{ background: 'var(--glass-bg)', padding: '12px', borderRadius: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '500' }}>{debt.description || debt.category}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{statusText}</span>
+                          </div>
+                          <div style={{ height: '6px', background: 'var(--glass-bg)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${percent}%`, height: '100%', background: isInsurance ? '#4ade80' : '#ef4444', borderRadius: '3px', transition: 'width 1s ease-in-out' }} />
+                          </div>
+                          {!isInsurance && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{currency.symbol} {debt.remainingAmount?.toLocaleString()} restante</span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total: {currency.symbol} {debt.totalLoanAmount?.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {isInsurance && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Inició: {debt.startDate?.toDate().toLocaleDateString()}</span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Fin: {debt.dueDate?.toDate().toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
+            }
+
+            {/* Visual Analysis Chart (PieChart) moved from left column to right column */}
+            {
+              expensesChartData.length > 0 && (
+                <div className="premium-card" style={{ padding: '20px', background: 'var(--card-bg-light)', border: '1px solid var(--glass-border)' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Análisis de Gastos</h3>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>En qué se te va el dinero este mes</p>
+                  <div style={{ height: '220px', position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expensesChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={5}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {expensesChartData.map((_entry, index) => (
+                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
+                          contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
+                          itemStyle={{ color: 'var(--text-primary)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {/* Center Label */}
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                      <p style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Total Var.</p>
+                      <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{currency.symbol} {data.expenses.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {/* Legend */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
+                    {expensesChartData.slice(0, 5).map((entry, index) => (
+                      <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColors[index % chartColors.length] }} />
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{entry.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+          </div>
         </div>
       </div>
 

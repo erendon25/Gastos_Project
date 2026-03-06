@@ -242,7 +242,10 @@ function App() {
           <Dashboard
             currentDate={currentDate}
             changeMonth={changeMonth}
-            onOpenSettings={() => setShowSettings(true)}
+            onOpenSettings={() => {
+              setSettingsTab('categories');
+              setShowSettings(true);
+            }}
             onNavigate={setActiveTab}
             onAddFromCategory={(cat) => {
               setPresetCategory(cat);
@@ -328,87 +331,86 @@ function App() {
         {/* Settings Modal (Categorías) */}
         <AnimatePresence>
           {showSettings && (
-            <motion.div
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (info.offset.y > 150) setShowSettings(false);
-              }}
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                width: '100%',
-                height: '100%',
-                background: 'var(--bg-color)',
-                zIndex: 2000,
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+            <div className="settings-modal-wrapper" onClick={() => setShowSettings(false)}>
+              <motion.div
+                drag={window.innerWidth > 768 ? false : "y"}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 150) setShowSettings(false);
+                }}
+                initial={window.innerWidth > 768 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
+                animate={window.innerWidth > 768 ? { opacity: 1, scale: 1 } : { y: 0 }}
+                exit={window.innerWidth > 768 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="settings-modal-content"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: window.innerWidth > 768 ? 'relative' : 'absolute',
+                  zIndex: 2000,
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
 
-              {/* Draggable Header */}
-              <div style={{ padding: '24px 20px 0 20px', flexShrink: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                  <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
-                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
-                    <X size={20} />
-                  </button>
-                </div>
+                {/* Draggable Header */}
+                <div style={{ padding: '24px 20px 0 20px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Configuración</h2>
+                    <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowSettings(false)} style={{ background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                      <X size={20} />
+                    </button>
+                  </div>
 
-                <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--card-bg-light)', padding: '4px', borderRadius: '14px' }}>
-                  <button
-                    onClick={() => setSettingsTab('categories')}
-                    style={{
-                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                      background: settingsTab === 'categories' ? 'var(--border-color)' : 'transparent',
-                      color: settingsTab === 'categories' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      transition: 'all 0.2s'
-                    }}>Categorías</button>
-                  <button
-                    onClick={() => setSettingsTab('profile')}
-                    style={{
-                      flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                      background: settingsTab === 'profile' ? 'var(--border-color)' : 'transparent',
-                      color: settingsTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                    }}>Perfil & Seguridad</button>
-                  {user?.email === 'erickrendon18@gmail.com' && (
+                  <div onPointerDown={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--card-bg-light)', padding: '4px', borderRadius: '14px' }}>
                     <button
-                      onClick={() => setSettingsTab('admin')}
+                      onClick={() => setSettingsTab('categories')}
                       style={{
                         flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
-                        background: settingsTab === 'admin' ? 'var(--border-color)' : 'transparent',
-                        color: settingsTab === 'admin' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                      }}>Admin</button>
-                  )}
+                        background: settingsTab === 'categories' ? 'var(--border-color)' : 'transparent',
+                        color: settingsTab === 'categories' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.2s'
+                      }}>Categorías</button>
+                    <button
+                      onClick={() => setSettingsTab('profile')}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                        background: settingsTab === 'profile' ? 'var(--border-color)' : 'transparent',
+                        color: settingsTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                      }}>Perfil & Seguridad</button>
+                    {user?.email === 'erickrendon18@gmail.com' && (
+                      <button
+                        onClick={() => setSettingsTab('admin')}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 'bold',
+                          background: settingsTab === 'admin' ? 'var(--border-color)' : 'transparent',
+                          color: settingsTab === 'admin' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                        }}>Admin</button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Scrollable Content */}
-              <div
-                onPointerDown={(e) => e.stopPropagation()}
-                style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
-              >
-                {settingsTab === 'admin' ? <Superadmin /> :
-                  settingsTab === 'categories' ?
-                    <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
-                    <PasswordSettings
-                      draftData={draftProfile}
-                      onUpdateDraft={setDraftProfile}
-                      user={user}
-                      onCurrencyChange={(newCurrency) => {
-                        setCurrency(newCurrency);
-                        if (user) setUser({ ...user, currency: newCurrency });
-                      }}
-                    />
-                }
-              </div>
-            </motion.div>
+                {/* Scrollable Content */}
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px 20px' }}
+                >
+                  {settingsTab === 'admin' ? <Superadmin /> :
+                    settingsTab === 'categories' ?
+                      <CategorySettings user={user} draftData={draftCategories} onUpdateDraft={setDraftCategories} /> :
+                      <PasswordSettings
+                        draftData={draftProfile}
+                        onUpdateDraft={setDraftProfile}
+                        user={user}
+                        onCurrencyChange={(newCurrency) => {
+                          setCurrency(newCurrency);
+                          if (user) setUser({ ...user, currency: newCurrency });
+                        }}
+                      />
+                  }
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

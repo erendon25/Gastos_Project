@@ -506,8 +506,8 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                 </h3>
 
                 {!isPasswordUser ? (
-                    <div style={{ padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255,255,255,0.08)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--text-primary)', textAlign: 'center' }}>
                             Has iniciado sesión con un proveedor externo. Tu correo está vinculado a esa plataforma.
                         </p>
                     </div>
@@ -560,8 +560,8 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
                 </div>
 
                 {!isPasswordUser ? (
-                    <div style={{ padding: '12px', background: 'var(--glass-bg)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255,255,255,0.08)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--text-primary)', textAlign: 'center' }}>
                             Has iniciado sesión con un proveedor externo. La gestión de contraseña se realiza desde tu cuenta de Google/Apple.
                         </p>
                     </div>

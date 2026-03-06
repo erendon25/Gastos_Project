@@ -36,16 +36,19 @@ const CategorySettings: React.FC<CategorySettingsProps> = ({ user }) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary"
-                style={{
-                    height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    fontSize: '16px', background: 'linear-gradient(135deg, #111, #222)', border: '1px solid var(--glass-border)'
-                }}
-            >
-                <Layers size={20} /> Crear Nueva Categoría
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="btn-primary"
+                    style={{
+                        height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        fontSize: '16px', background: 'var(--text-primary)', color: 'var(--bg-color)', border: 'none',
+                        width: 'fit-content', minWidth: '280px', padding: '0 32px', borderRadius: '16px'
+                    }}
+                >
+                    <Layers size={20} /> Crear Nueva Categoría
+                </button>
+            </div>
 
             <AnimatePresence>
                 {showCreateModal && (
