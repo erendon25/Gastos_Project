@@ -25,9 +25,11 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
 
     useEffect(() => {
         const updateWidth = () => {
-            if (containerRef.current) {
-                setContainerWidth(containerRef.current.offsetWidth);
-            }
+            // Use window innerWidth instead of container offsetWidth 
+            // to avoid 0 width when display: none is active
+            const screenW = window.innerWidth;
+            const newW = Math.min(430, screenW - 32);
+            setContainerWidth(newW);
         };
         updateWidth();
         window.addEventListener('resize', updateWidth);
@@ -243,10 +245,10 @@ const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = (
                 </div>
             </div>
             <style>{`
-                @media (min-width: 768px) {
+                @media (min-width: 1024px) {
                     .mobile-dock { display: none !important; }
                 }
-                @media (max-width: 767px) {
+                @media (max-width: 1023px) {
                     .desktop-sidebar { display: none !important; }
                 }
             `}</style>

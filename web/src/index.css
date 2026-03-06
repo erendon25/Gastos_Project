@@ -34,7 +34,7 @@
   flex-direction: column;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .settings-modal-wrapper {
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(12px);
@@ -216,6 +216,25 @@ input[type=number] {
   appearance: textfield;
 }
 
+/* Dashboard Layout Defaults (Mobile) */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-layout-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-layout-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* PC and Desktop Responsive Layout */
 .desktop-wrapper {
   min-height: 100vh;
@@ -253,7 +272,7 @@ input[type=number] {
   flex-direction: column;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .desktop-wrapper {
     padding: 0;
   }
@@ -344,7 +363,7 @@ input[type=number] {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .desktop-sidebar {
     display: none !important;
   }

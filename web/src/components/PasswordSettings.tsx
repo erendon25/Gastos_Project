@@ -231,15 +231,27 @@ const PasswordSettings: React.FC<PasswordSettingsProps> = ({ draftData, onUpdate
         }
     }
 
-    const toggleTheme = () => {
+    const toggleTheme = async () => {
         const newIsDark = !isDarkTheme;
         setIsDarkTheme(newIsDark);
+        const themeValue = newIsDark ? 'dark' : 'light';
+
         if (newIsDark) {
             document.body.classList.remove('light-theme');
             localStorage.setItem('theme', 'dark');
         } else {
             document.body.classList.add('light-theme');
             localStorage.setItem('theme', 'light');
+        }
+
+        if (auth.currentUser) {
+            try {
+                await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+                    theme: themeValue
+                });
+            } catch (error) {
+                console.error('Error saving theme to Firestore', error);
+            }
         }
     }
 

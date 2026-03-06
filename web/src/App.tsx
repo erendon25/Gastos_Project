@@ -151,6 +151,21 @@ function App() {
               });
             }
 
+            // Sync Theme
+            if (userData.theme) {
+              localStorage.setItem('theme', userData.theme);
+              if (userData.theme === 'light') {
+                document.body.classList.add('light-theme');
+              } else {
+                document.body.classList.remove('light-theme');
+              }
+            } else {
+              const currentLocalTheme = localStorage.getItem('theme') || 'dark';
+              import('firebase/firestore').then(({ updateDoc }) => {
+                updateDoc(userRef, { theme: currentLocalTheme }).catch(console.error);
+              });
+            }
+
             setShowOnboarding(!userData.onboardingCompleted);
             const isCreator = currentUser.email === 'erickrendon18@gmail.com';
             const proUntil = userData.proUntil ? new Date(userData.proUntil) : null;
@@ -158,9 +173,10 @@ function App() {
             const userIsPro = isCreator || userData.isPro || validProUntil;
             const userTutorialCompleted = userData.tutorialCompleted || false;
             const userCurrency = userData.currency || { code: 'PEN', symbol: 'S/' };
+            const userTheme = userData.theme || localStorage.getItem('theme') || 'dark';
 
             setCurrency(userCurrency);
-            setUser({ ...currentUser, isPro: userIsPro, tutorialCompleted: userTutorialCompleted, currency: userCurrency, hasAddedFirstExpense: userData.hasAddedFirstExpense });
+            setUser({ ...currentUser, isPro: userIsPro, tutorialCompleted: userTutorialCompleted, currency: userCurrency, theme: userTheme, hasAddedFirstExpense: userData.hasAddedFirstExpense });
 
             if (!userTutorialCompleted && userData.onboardingCompleted) {
               setShowTutorial(true);
@@ -333,21 +349,21 @@ function App() {
           {showSettings && (
             <div className="settings-modal-wrapper" onClick={() => setShowSettings(false)}>
               <motion.div
-                drag={window.innerWidth > 768 ? false : "y"}
+                drag={window.innerWidth > 1024 ? false : "y"}
                 dragConstraints={{ top: 0, bottom: 0 }}
                 dragElastic={0.2}
                 onDragEnd={(_, info) => {
                   if (info.offset.y > 150) setShowSettings(false);
                 }}
-                initial={window.innerWidth > 768 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
-                animate={window.innerWidth > 768 ? { opacity: 1, scale: 1 } : { y: 0 }}
-                exit={window.innerWidth > 768 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
+                initial={window.innerWidth > 1024 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
+                animate={window.innerWidth > 1024 ? { opacity: 1, scale: 1 } : { y: 0 }}
+                exit={window.innerWidth > 1024 ? { opacity: 0, scale: 0.95 } : { y: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 className="settings-modal-content"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: window.innerWidth > 768 ? 'relative' : 'absolute',
+                  position: window.innerWidth > 1024 ? 'relative' : 'absolute',
                   zIndex: 2000,
                   display: 'flex',
                   flexDirection: 'column'
