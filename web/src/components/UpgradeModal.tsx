@@ -71,7 +71,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                     position: 'relative',
                     width: '100%',
                     maxWidth: '400px',
-                    background: 'var(--card-bg-light)',
+                    background: 'var(--modal-bg)',
                     borderRadius: '32px',
                     border: '1px solid rgba(255,255,255,0.1)',
                     overflow: 'hidden',
@@ -146,7 +146,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose }) => {
                                     <div style={{ color: '#fbbf24' }}>
                                         <Check size={16} strokeWidth={3} />
                                     </div>
-                                    <span style={{ fontSize: '14px', color: '#ccc' }}>{feature}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{feature}</span>
                                 </div>
                             ))}
                         </div>

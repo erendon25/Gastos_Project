@@ -2,6 +2,7 @@
   --bg-color: #0a0a0a;
   --card-bg: #161616;
   --card-bg-light: #1a1a1a;
+  --modal-bg: #1c1c1e;
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
   --text-tertiary: #888888;
@@ -58,6 +59,7 @@
   --bg-color: #f3f4f6;
   --card-bg: #ffffff;
   --card-bg-light: #f9fafb;
+  --modal-bg: #ffffff;
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-tertiary: #6b7280;
@@ -373,5 +375,24 @@ input[type=number] {
     overflow-y: auto;
     flex: 1;
     padding-bottom: 180px;
+  }
+}
+
+/* Responsive visibility utilities */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: block !important;
   }
 }

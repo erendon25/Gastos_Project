@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Home, Wallet, Repeat, Landmark, TrendingUp, Tv } from 'lucide-react';
+import { Home, Wallet, TrendingUp, PiggyBank, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navBgColor = 'var(--card-bg)';
@@ -9,11 +9,10 @@ const inactiveIconColor = 'var(--text-secondary)';
 
 const tabs = [
     { id: 'home', icon: Home, label: 'Inicio' },
-    { id: 'expenses', icon: Wallet, label: 'Gastos' },
-    { id: 'recurring', icon: Repeat, label: 'Fijos' },
-    { id: 'subscriptions', icon: Tv, label: 'Digital' },
-    { id: 'debts', icon: Landmark, label: 'Deudas' },
-    { id: 'income', icon: TrendingUp, label: 'Ingresos' },
+    { id: 'gastos', icon: Wallet, label: 'Gastos' },
+    { id: 'ingresos', icon: TrendingUp, label: 'Ingresos' },
+    { id: 'savings', icon: PiggyBank, label: 'Metas' },
+    { id: 'shared', icon: Users, label: 'Grupos' },
 ];
 
 const Dock: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = ({ activeTab, onChange }) => {

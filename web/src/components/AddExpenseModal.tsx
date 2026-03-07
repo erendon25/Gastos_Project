@@ -5,6 +5,7 @@ import { addDoc, collection, Timestamp, onSnapshot, query, updateDoc, doc, delet
 import { db, auth } from '../lib/firebase';
 import SpeechButton from './SpeechButton';
 import { CATEGORIES as DEFAULT_CATEGORIES, getCategoryByText } from '../lib/categories';
+import { convertCurrency } from '../lib/currencies';
 
 interface AddExpenseModalProps {
     onClose: () => void;
@@ -61,6 +62,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
         if (draftData?.date) return draftData.date;
         return formatLocalDate(new Date());
     });
+    const [selectedCurrency, setSelectedCurrency] = useState(editItem?.originalCurrency || currency.code);
     const [selectedTime, setSelectedTime] = useState(() => {
         if (editItem?.date) {
             const d = editItem.date.toDate();
@@ -86,6 +88,8 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
     const [allCategories, setAllCategories] = useState<any[]>(DEFAULT_CATEGORIES);
     const [showRecurringChoice, setShowRecurringChoice] = useState(false);
     const [pendingData, setPendingData] = useState<any>(null);
+    const [wallets, setWallets] = useState<{ id: string; name: string; icon: string; color: string }[]>([]);
+    const [selectedWalletId, setSelectedWalletId] = useState<string>(editItem?.walletId || '');
 
     useEffect(() => {
         if (!auth.currentUser) return;
@@ -97,6 +101,20 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 setAllCategories(userCats);
             } else {
                 setAllCategories(DEFAULT_CATEGORIES);
+            }
+        });
+        return () => unsub();
+    }, []);
+
+    // Load wallets for selector
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        const unsub = onSnapshot(collection(db, 'users', auth.currentUser.uid, 'wallets'), (snap) => {
+            const ws = snap.docs.map(d => ({ id: d.id, name: (d.data() as any).name, icon: (d.data() as any).icon || '💵', color: (d.data() as any).color || '#818cf8' }));
+            setWallets(ws);
+            // Auto-select first wallet if none selected
+            if (!selectedWalletId && ws.length > 0) {
+                setSelectedWalletId(ws[0].id);
             }
         });
         return () => unsub();
@@ -149,24 +167,43 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
     };
 
     const handleSave = async (scope: 'single' | 'future' = 'future') => {
-        if (!amount || !auth.currentUser) return;
-
+        if (!auth.currentUser) return;
+        const uid = auth.currentUser.uid;
         onClose();
         if (onUpdateDraft) onUpdateDraft(null);
+
+        const numAmount = parseFloat(amount);
+        let finalAmount = numAmount;
+        let rate = 1;
+
+        if (selectedCurrency !== currency.code) {
+            try {
+                finalAmount = await convertCurrency(numAmount, selectedCurrency, currency.code);
+                rate = finalAmount / numAmount;
+            } catch (err) {
+                console.error("Currency conversion failed:", err);
+            }
+        }
 
         // Encontrar el emoji de la categoría seleccionada
         const selectedCat = allCategories.find(c => c.name === category);
         const categoryEmoji = selectedCat?.emoji || (selectedCat?.icon ? null : '📦');
 
         const data: any = pendingData || {
-            amount: parseFloat(amount),
+            amount: finalAmount,
+            originalAmount: numAmount,
+            originalCurrency: selectedCurrency,
+            baseCurrency: currency.code,
+            exchangeRate: rate,
             description,
             category,
             categoryEmoji,
             isRecurring: type === 'debt' ? true : isRecurring,
             autoDebit: type === 'debt' ? false : (isRecurring ? autoDebit : false),
             paid: editItem ? editItem.paid : (type === 'income' ? (!isRecurring) : (isRecurring && autoDebit)),
-            recurringDay: isRecurring ? parseInt(recurringDay) : null
+            recurringDay: isRecurring ? parseInt(recurringDay) : null,
+            walletId: selectedWalletId || null,
+            walletName: wallets.find(w => w.id === selectedWalletId)?.name || null
         };
 
         // Date Handling
@@ -200,14 +237,14 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                     if (!user?.isPro) {
                         // Check if they are over global limits before allowing to add an exception
-                        const snapRec = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
+                        const snapRec = await getDocs(query(collection(db, 'users', uid, 'gastos_recurrentes')));
                         if (snapRec.size > 3) {
                             alert('Tienes más gastos fijos de los que permite la versión Gratis. ¡Actualízate a Flux PRO para continuar usándolos!');
                             return;
                         }
                     }
 
-                    await addDoc(collection(db, 'users', auth.currentUser.uid, 'gastos'), {
+                    await addDoc(collection(db, 'users', uid, 'gastos'), {
                         ...data,
                         description: `${data.description} (Excepción ${new Date().toLocaleString('es-ES', { month: 'short' })})`
                     });
@@ -230,14 +267,14 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                 if (!user?.isPro) {
                     if (col === 'gastos_recurrentes') {
-                        const snapRec = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
+                        const snapRec = await getDocs(query(collection(db, 'users', uid, 'gastos_recurrentes')));
                         if (snapRec.size > 3) {
                             alert('Tienes más suscripciones/gastos fijos de los que permite la versión Gratis. ¡Actualízate a Flux PRO para poder editarlos y continuar!');
                             return;
                         }
                     }
                     if (col === 'prestamos') {
-                        const snapDebt = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'prestamos')));
+                        const snapDebt = await getDocs(query(collection(db, 'users', uid, 'prestamos')));
                         if (snapDebt.size > 1) {
                             alert('Tienes más deudas/seguros de los que permite la versión Gratis. ¡Actualízate a Flux PRO para poder editarlos y continuar!');
                             return;
@@ -245,7 +282,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                     }
                 }
 
-                const docRef = doc(db, 'users', auth.currentUser.uid, col, editItem.id);
+                const docRef = doc(db, 'users', uid, col, editItem.id);
                 await updateDoc(docRef, data);
             } else {
                 let collectionName = 'gastos';
@@ -253,8 +290,8 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
 
                 // Validación general de límites caídos en Tier Free
                 if (!isPro) {
-                    const snapRec = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
-                    const snapDebt = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'prestamos')));
+                    const snapRec = await getDocs(query(collection(db, 'users', uid, 'gastos_recurrentes')));
+                    const snapDebt = await getDocs(query(collection(db, 'users', uid, 'prestamos')));
 
                     if (snapRec.size > 3 || snapDebt.size > 1) {
                         alert('Tienes más registros activos (Fijos/Deudas) de los que permite la versión Gratis. ¡Actualízate a Flux PRO para continuar registrando movimientos!');
@@ -267,7 +304,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 }
                 else if (type === 'debt') {
                     if (!isPro) {
-                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'prestamos')));
+                        const snap = await getDocs(query(collection(db, 'users', uid, 'prestamos')));
                         if (snap.size >= 1) {
                             alert('Límite de la versión Gratis alcanzado: Solo puedes tener 1 deuda o seguro. ¡Actualízate a Flux PRO para deudas ilimitadas!');
                             return;
@@ -277,7 +314,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 }
                 else if (isRecurring) {
                     if (!isPro) {
-                        const snap = await getDocs(query(collection(db, 'users', auth.currentUser.uid, 'gastos_recurrentes')));
+                        const snap = await getDocs(query(collection(db, 'users', uid, 'gastos_recurrentes')));
                         if (snap.size >= 3) {
                             alert('Límite de la versión Gratis alcanzado: Solo puedes tener 3 suscripciones o gastos fijos automatizados. ¡Pásate a Flux PRO!');
                             return;
@@ -286,13 +323,13 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                     collectionName = 'gastos_recurrentes';
                 }
 
-                await addDoc(collection(db, 'users', auth.currentUser.uid, collectionName), data);
+                await addDoc(collection(db, 'users', uid, collectionName), data);
 
                 // Lógica de referido para el primer gasto
                 if (user && !user.hasAddedFirstExpense) {
                     try {
-                        await updateDoc(doc(db, 'users', auth.currentUser.uid), { hasAddedFirstExpense: true });
-                        await updateDoc(doc(db, 'referrals', auth.currentUser.uid), {
+                        await updateDoc(doc(db, 'users', uid), { hasAddedFirstExpense: true });
+                        await updateDoc(doc(db, 'referrals', uid), {
                             status: 'completed',
                             completedAt: new Date().toISOString()
                         });
@@ -334,11 +371,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
     if (showRecurringChoice) {
         return (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(15px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                <div style={{ width: '100%', maxWidth: '380px', background: '#1c1c1e', borderRadius: '24px', padding: '32px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <div style={{ width: '100%', maxWidth: '380px', background: 'var(--modal-bg)', borderRadius: '24px', padding: '32px', textAlign: 'center', border: '1px solid var(--glass-border)' }}>
                     <div style={{ width: '64px', height: '64px', background: 'rgba(129, 138, 248, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
                         <Repeat size={32} color="#818cf8" />
                     </div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>¿Cómo aplicar el cambio?</h3>
+                    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: 'var(--text-primary)' }}>¿Cómo aplicar el cambio?</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5', marginBottom: '32px' }}>
                         Estás editando un gasto fijo. ¿Deseas que este nuevo monto se aplique a todos los meses futuros o solo como una excepción para este mes?
                     </p>
@@ -382,7 +419,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                 style={{
                     width: '100%',
                     maxWidth: '450px',
-                    background: '#1c1c1e',
+                    background: 'var(--modal-bg)',
                     borderTopLeftRadius: '32px',
                     borderTopRightRadius: '32px',
                     padding: '24px',
@@ -435,31 +472,121 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onClose, editItem, ed
                     </div>
 
                     <form onSubmit={onFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                            {['PEN', 'USD', 'EUR', 'COP', 'MXN'].map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setSelectedCurrency(c)}
+                                    style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '8px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        background: selectedCurrency === c ? 'var(--text-primary)' : 'var(--glass-bg)',
+                                        color: selectedCurrency === c ? 'var(--bg-color)' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        transition: '0.2s'
+                                    }}
+                                >
+                                    {c}
+                                </button>
+                            ))}
+                            {!['PEN', 'USD', 'EUR', 'COP', 'MXN'].includes(selectedCurrency) && (
+                                <button
+                                    type="button"
+                                    style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '8px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        background: 'var(--text-primary)',
+                                        color: 'var(--bg-color)',
+                                        border: 'none'
+                                    }}
+                                >
+                                    {selectedCurrency}
+                                </button>
+                            )}
+                        </div>
+
                         <div style={{ textAlign: 'center' }}>
                             <input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" style={{ background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: '48px', textAlign: 'center', width: '100%', outline: 'none', fontWeight: '800' }} required autoFocus />
                         </div>
 
-                        <input
-                            type="text"
-                            placeholder={type === 'income' ? "¿De qué es este ingreso?" : (presetCategory ? "¿Detalle o local?" : "¿En qué gastaste?")}
-                            className="input-field"
-                            value={description}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setDescription(val);
-                                if (type !== 'income' && !presetCategory && val.length > 2) {
-                                    const normalizedText = val.toLowerCase();
-                                    const match = allCategories.find((cat: any) => {
-                                        const nameMatch = normalizedText.includes(cat.name.toLowerCase());
-                                        const keywordMatch = cat.keywords?.some((k: string) => normalizedText.includes(k.toLowerCase()));
-                                        return nameMatch || keywordMatch;
-                                    });
-                                    if (match) {
-                                        setCategory(match.name);
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder={type === 'income' ? "¿De qué es este ingreso?" : (presetCategory ? "¿Detalle o local?" : "¿En qué gastaste?")}
+                                className="input-field"
+                                value={description}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDescription(val);
+                                    if (type !== 'income' && !presetCategory && val.length > 2) {
+                                        const normalizedText = val.toLowerCase();
+                                        const match = allCategories.find((cat: any) => {
+                                            const nameMatch = normalizedText.includes(cat.name.toLowerCase());
+                                            const keywordMatch = cat.keywords?.some((k: string) => normalizedText.includes(k.toLowerCase()));
+                                            return nameMatch || keywordMatch;
+                                        });
+                                        if (match) {
+                                            setCategory(match.name);
+                                        }
                                     }
-                                }
-                            }} required
-                        />
+                                }} required
+                            />
+                            {type !== 'debt' && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newState = !isRecurring;
+                                        setIsRecurring(newState);
+                                        // If turning ON, set a default day if not present
+                                        if (newState && !recurringDay) setRecurringDay(new Date().getDate().toString());
+                                    }}
+                                    style={{
+                                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                                        background: isRecurring ? (type === 'income' ? '#4ade80' : '#818cf8') : 'var(--glass-bg)',
+                                        border: 'none', borderRadius: '10px', padding: '6px 10px',
+                                        color: isRecurring ? 'white' : 'var(--text-secondary)',
+                                        display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', transition: '0.2s', fontSize: '11px', fontWeight: 'bold'
+                                    }}
+                                >
+                                    <Repeat size={14} /> {isRecurring ? 'Recurrente' : 'Repetir'}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Wallet Selector */}
+                        {wallets.length > 0 && (
+                            <div>
+                                <label style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                                    {type === 'income' ? '¿A QUÉ BILLETERA VA?' : '¿DE QUÉ BILLETERA?'}
+                                </label>
+                                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                                    {wallets.map(w => (
+                                        <button
+                                            key={w.id}
+                                            type="button"
+                                            onClick={() => setSelectedWalletId(w.id)}
+                                            style={{
+                                                flexShrink: 0,
+                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                padding: '8px 14px', borderRadius: '20px', border: '1px solid',
+                                                borderColor: selectedWalletId === w.id ? w.color : 'var(--glass-border)',
+                                                background: selectedWalletId === w.id ? `${w.color}22` : 'var(--glass-bg)',
+                                                color: selectedWalletId === w.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                                fontSize: '12px', fontWeight: selectedWalletId === w.id ? '700' : '400',
+                                                cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            <span>{w.icon}</span> {w.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '12px', background: 'var(--glass-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

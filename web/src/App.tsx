@@ -4,20 +4,23 @@ import { auth } from './lib/firebase'
 import Dashboard from './components/Dashboard'
 import Dock from './components/Dock'
 import Login from './components/Login'
-import TransactionsList from './components/TransactionsList'
+import GastosHub from './components/GastosHub'
+import IngresosHub from './components/IngresosHub'
 import CategorySettings from './components/CategorySettings'
 import PasswordSettings from './components/PasswordSettings'
 import AddExpenseModal from './components/AddExpenseModal'
-import SubscriptionsSection from './components/SubscriptionsSection'
 import Superadmin from './components/Superadmin'
-import { X, Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import SavingsGoals from './components/SavingsGoals'
+import SharedWorkspace from './components/SharedWorkspace'
+import { X, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import Onboarding from './components/Onboarding'
 import TutorialOverlay from './components/TutorialOverlay'
 import UpgradeModal from './components/UpgradeModal'
 import InstallPWATutorial from './components/InstallPWATutorial'
+import { fetchLiveRates } from './lib/currencies'
 
 // Inicializar el tema local
 const storedTheme = localStorage.getItem('theme');
@@ -35,33 +38,6 @@ if (refCode) {
   window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-const MonthNavigator: React.FC<{ currentDate: Date; onChange: (offset: number) => void }> = ({ currentDate, onChange }) => {
-  const monthYearLabel = currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      background: 'var(--glass-bg)',
-      padding: '12px 16px',
-      borderRadius: '16px',
-      border: '1px solid var(--glass-border)',
-      margin: '0 20px 20px 20px'
-    }}>
-      <button onClick={() => onChange(-1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ChevronLeft size={20} />
-      </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Calendar size={16} color="#818cf8" />
-        <span style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'capitalize' }}>{monthYearLabel}</span>
-      </div>
-      <button onClick={() => onChange(1)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ChevronRight size={20} />
-      </button>
-    </div>
-  );
-};
 
 const pageVariants = {
   initial: { opacity: 0, x: 20, scale: 0.98 },
@@ -119,13 +95,25 @@ function App() {
     if (auth.currentUser) {
       try {
         await auth.currentUser.reload();
-        // Force state update with the refreshed user object
-        setUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser));
+        const freshUser = Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser);
+        setUser(freshUser);
+        // Write to global users_public collection for shared budget user lookup
+        await setDoc(doc(db, 'users_public', auth.currentUser.uid), {
+          displayName: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Usuario',
+          email: auth.currentUser.email,
+          photoURL: auth.currentUser.photoURL || null,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
       } catch {
         setUser(auth.currentUser);
       }
     }
   };
+
+  useEffect(() => {
+    // Fetch live exchange rates in the background on startup
+    fetchLiveRates().catch(console.warn);
+  }, []);
 
   useEffect(() => {
     getRedirectResult(auth).catch(console.error);
@@ -267,69 +255,30 @@ function App() {
             currency={currency}
           />
         );
-      case 'expenses':
+      case 'gastos':
         return (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{ padding: '0 20px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Diarios</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Historial de consumos normales.</p>
-            </div>
-            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="expense" currentDate={currentDate} currency={currency} />
-            </div>
-          </div>
+          <GastosHub
+            currentDate={currentDate}
+            changeMonth={changeMonth}
+            currency={currency}
+            user={user}
+            onUpgrade={() => setShowUpgrade(true)}
+          />
         );
-      case 'recurring':
+      case 'ingresos':
         return (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{ padding: '0 20px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Gastos Fijos</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Alquiler, servicios y mensualidades.</p>
-            </div>
-            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="recurring" currentDate={currentDate} currency={currency} />
-            </div>
-          </div>
+          <IngresosHub
+            currentDate={currentDate}
+            changeMonth={changeMonth}
+            currency={currency}
+            user={user}
+            onUpgrade={() => setShowUpgrade(true)}
+          />
         );
-      case 'debts':
-        return (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{ padding: '0 20px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Deudas y Seguros</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Préstamos bancarios y cronogramas de pago.</p>
-            </div>
-            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="debt" currentDate={currentDate} currency={currency} />
-            </div>
-          </div>
-        );
-      case 'income':
-        return (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{ padding: '0 20px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Ingresos</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Tus entradas de dinero.</p>
-            </div>
-            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <div style={{ padding: '0 20px' }}>
-              <TransactionsList type="income" currentDate={currentDate} currency={currency} />
-            </div>
-          </div>
-        );
-      case 'subscriptions':
-        return (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{ padding: '0 20px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Suscripciones</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>Gestiona tus servicios digitales y membresías.</p>
-            </div>
-            <MonthNavigator currentDate={currentDate} onChange={changeMonth} />
-            <SubscriptionsSection currentDate={currentDate} user={user} onUpgrade={() => setShowUpgrade(true)} currency={currency} />
-          </div>
-        );
+      case 'savings':
+        return <SavingsGoals currency={currency} user={user} onUpgrade={() => setShowUpgrade(true)} />;
+      case 'shared':
+        return <SharedWorkspace user={user} currency={currency} onUpgrade={() => setShowUpgrade(true)} />;
       default:
         return null;
     }

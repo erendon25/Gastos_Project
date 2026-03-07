@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, X, PiggyBank, Pencil, Check, Zap, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, LogOut, Settings, ChevronLeft, ChevronRight, X, PiggyBank, Zap, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import RecentTransactions from './RecentTransactions';
 import CategoryBudget from './CategoryBudget';
+import MonthProjection from './MonthProjection';
 import { auth, db } from '../lib/firebase';
-import { collection, onSnapshot, query, doc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isSubscriptionItem } from '../lib/subscriptionUtils';
 import { usePremium } from '../lib/usePremium';
@@ -57,36 +58,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
 
   const [breakdownType, setBreakdownType] = useState<'income' | 'expense' | 'balance' | null>(null);
 
-  // Savings state - persisted in Firestore
-  const [savingsGoal, setSavingsGoal] = useState<number>(0);
-  const [savingsLoading, setSavingsLoading] = useState(true);
-  const [editingSavings, setEditingSavings] = useState(false);
-  const [savingsInput, setSavingsInput] = useState('');
+  // Savings goals - shared with Metas tab via savingsGoals collection
+  const [savingsGoals, setSavingsGoals] = useState<{ id: string; name: string; icon: string; color: string; currentAmount: number; targetAmount: number }[]>([]);
+  const [savingsGoalIndex, setSavingsGoalIndex] = useState(0);
+  const [wallets, setWallets] = useState<any[]>([]);
 
-  // Load savings goal from Firestore on mount
+  // Load savings goals from Firestore (same collection as Metas tab)
+  // Load data from Firestore
   useEffect(() => {
     if (!auth.currentUser) return;
-    const savingsRef = doc(db, 'users', auth.currentUser.uid, 'config', 'savings_goal');
-    const unsub = onSnapshot(savingsRef, (snap) => {
-      if (snap.exists()) {
-        setSavingsGoal(snap.data().amount || 0);
-      } else {
-        setSavingsGoal(0);
-      }
-      setSavingsLoading(false);
+    const uid = auth.currentUser.uid;
+    const unsubSavings = onSnapshot(collection(db, 'users', uid, 'savingsGoals'), (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setSavingsGoals(data.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
     });
-    return () => unsub();
+    const unsubWallets = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => {
+      setWallets(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    });
+    return () => {
+      unsubSavings();
+      unsubWallets();
+    };
   }, []);
 
-  const handleSaveSavings = async () => {
-    const val = parseFloat(savingsInput);
-    if (!isNaN(val) && val >= 0 && auth.currentUser) {
-      const savingsRef = doc(db, 'users', auth.currentUser.uid, 'config', 'savings_goal');
-      await setDoc(savingsRef, { amount: val }, { merge: true });
+  // keep savingsGoalIndex in bounds
+  useEffect(() => {
+    if (savingsGoalIndex >= savingsGoals.length && savingsGoals.length > 0) {
+      setSavingsGoalIndex(savingsGoals.length - 1);
     }
-    setEditingSavings(false);
-    setSavingsInput('');
-  };
+  }, [savingsGoals.length]);
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPress = useRef(false);
@@ -444,8 +444,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                 cursor: 'pointer'
               }}>
               <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(129, 138, 248, 0.05)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px', position: 'relative' }}>Saldo total disponible <span style={{ fontSize: 10, opacity: 0.5 }}>(Ver detalle)</span></p>
               <h1 style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-1px', position: 'relative' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</h1>
+            </div>
+
+
+            {/* Wallets Horizontal List */}
+            {wallets.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '4px 0 16px 0', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {wallets.map((w: any) => (
+                  <div key={w.id} className="premium-card" style={{
+                    minWidth: '140px',
+                    flex: '0 0 auto',
+                    background: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>{w.icon || '🏦'}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.name}</span>
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: '800', margin: 0 }}>{currency.symbol} {(parseFloat(w.balance) || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Month Projection Widget — mobile only, desktop version is below 'Actividad Reciente' */}
+            <div className="mobile-only">
+              <MonthProjection currentDate={currentDate} currency={currency} />
             </div>
 
             {/* Quick Summary Grid */}
@@ -492,13 +521,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Actividad Reciente</h3>
                 <button
-                  onClick={() => onNavigate('recurring')}
+                  onClick={() => onNavigate('gastos')}
                   style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
                   Ver más
                 </button>
               </div>
               <RecentTransactions onNavigate={onNavigate} currency={currency} />
+            </div>
+
+            {/* Month Projection — desktop: below Recent Transactions */}
+            <div className="desktop-only">
+              <MonthProjection currentDate={currentDate} currency={currency} />
             </div>
           </div>
 
@@ -512,69 +546,81 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
               <CategoryBudget currentDate={currentDate} onAddExpense={onAddFromCategory} />
             </div>
 
-            {/* Savings Card */}
-            {(() => {
-              const savingsProgress = savingsGoal > 0 ? Math.min(100, (balance / savingsGoal) * 100) : 0;
-              const savingsColor = savingsProgress >= 100 ? '#4ade80' : savingsProgress >= 60 ? '#facc15' : '#f87171';
-              return (
-                <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(74, 222, 128, 0.12)', padding: '20px', opacity: savingsLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <PiggyBank size={18} color="#4ade80" />
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>Meta de Ahorro</span>
-                    </div>
-                    {!editingSavings ? (
-                      <button
-                        onClick={() => { setSavingsInput(savingsGoal > 0 ? String(savingsGoal) : ''); setEditingSavings(true); }}
-                        style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
-                      >
-                        <Pencil size={12} /> Editar
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                          <span style={{ paddingLeft: '10px', color: 'var(--text-secondary)', fontSize: '13px' }}>{currency.symbol}</span>
-                          <input
-                            autoFocus
-                            type="number"
-                            inputMode="decimal"
-                            value={savingsInput}
-                            onChange={e => setSavingsInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleSaveSavings()}
-                            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '16px', padding: '8px 10px', width: '110px' }}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <button
-                          onClick={handleSaveSavings}
-                          style={{ background: '#4ade80', border: 'none', borderRadius: '8px', padding: '8px 12px', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700' }}
-                        >
-                          <Check size={14} /> OK
-                        </button>
-                      </div>
-                    )}
+            {/* Savings Goals Carousel */}
+            {savingsGoals.length > 0 ? (
+              <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(129,140,248,0.15)', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <PiggyBank size={18} color="#818cf8" />
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)' }}>Metas de Ahorro</span>
                   </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {savingsGoals.map((_, i) => (
+                      <button key={i} onClick={() => setSavingsGoalIndex(i)}
+                        style={{ width: i === savingsGoalIndex ? '16px' : '6px', height: '6px', borderRadius: '3px', background: i === savingsGoalIndex ? '#818cf8' : 'var(--glass-border)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s' }} />
+                    ))}
+                  </div>
+                </div>
 
-                  {savingsGoal > 0 ? (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Balance actual</span>
-                        <span style={{ fontSize: '12px', color: savingsColor, fontWeight: '700' }}>{currency.symbol} {balance.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                {/* Swipeable goal card */}
+                {(() => {
+                  const goal = savingsGoals[savingsGoalIndex];
+                  if (!goal) return null;
+                  const pct = goal.targetAmount > 0 ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0;
+                  return (
+                    <motion.div
+                      key={goal.id}
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      onDragEnd={(_e, { offset }) => {
+                        if (offset.x < -40 && savingsGoalIndex < savingsGoals.length - 1) setSavingsGoalIndex(i => i + 1);
+                        if (offset.x > 40 && savingsGoalIndex > 0) setSavingsGoalIndex(i => i - 1);
+                      }}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      style={{ cursor: savingsGoals.length > 1 ? 'grab' : 'default' }}
+                      whileTap={{ cursor: 'grabbing' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '28px' }}>{goal.icon}</span>
+                        <div>
+                          <p style={{ fontSize: '15px', fontWeight: '800', margin: 0 }}>{goal.name}</p>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
+                            {currency.symbol} {goal.currentAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })} de {currency.symbol} {goal.targetAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
                       </div>
                       <div style={{ height: '8px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                        <div style={{ width: `${savingsProgress}%`, height: '100%', background: `linear-gradient(90deg, ${savingsColor}cc, ${savingsColor})`, borderRadius: '4px', transition: 'width 0.8s ease' }} />
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
+                          style={{ height: '100%', background: `linear-gradient(90deg, ${goal.color}90, ${goal.color})`, borderRadius: '4px' }} />
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Meta: {currency.symbol} {savingsGoal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
-                        <span style={{ fontSize: '11px', color: savingsColor, fontWeight: '600' }}>{savingsProgress.toFixed(0)}% logrado</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                          {pct >= 100 ? '🎉 ¡Meta alcanzada!' : `Falta: ${currency.symbol} ${(goal.targetAmount - goal.currentAmount).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
+                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: goal.color }}>{Math.round(pct)}%</span>
                       </div>
-                    </>
-                  ) : (
-                    <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '8px 0' }}>Toca "Editar" para definir tu meta de ahorro mensual</p>
-                  )}
-                </div>
-              );
-            })()}
+                    </motion.div>
+                  );
+                })()}
+
+                <button onClick={() => onNavigate('savings')}
+                  style={{ marginTop: '14px', width: '100%', padding: '10px', borderRadius: '12px', background: 'rgba(129,140,248,0.1)', border: '1px solid rgba(129,140,248,0.2)', color: '#818cf8', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                  Ver todas las metas →
+                </button>
+              </div>
+            ) : (
+              <div className="premium-card" style={{ background: 'var(--card-bg)', border: '1px solid rgba(129,140,248,0.1)', padding: '20px', textAlign: 'center' }}>
+                <PiggyBank size={28} color="#818cf8" style={{ marginBottom: '10px', opacity: 0.5 }} />
+                <p style={{ fontSize: '14px', fontWeight: '700', margin: '0 0 6px 0' }}>Sin metas de ahorro</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>Crea una meta en la sección Metas</p>
+                <button onClick={() => onNavigate('savings')}
+                  style={{ width: '100%', padding: '10px', borderRadius: '12px', background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.25)', color: '#818cf8', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                  Ir a Metas →
+                </button>
+              </div>
+            )}
 
             {/* Debt Progress Card */}
             {
@@ -709,7 +755,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                                 ))}
                               </Pie>
                               <Tooltip
-                                formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Gasto']}
+                                formatter={(value: any, name: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name]}
                                 contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                 itemStyle={{ color: 'var(--text-primary)' }}
                               />
@@ -752,7 +798,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                               <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} interval={3} />
                               <YAxis tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val > 1000 ? (val / 1000).toFixed(1) + 'k' : val}`} />
                               <Tooltip
-                                formatter={(value: any) => [`${currency.symbol} ${Number(value).toLocaleString()}`, 'Histórico']}
+                                formatter={(value: any, name: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name]}
                                 labelStyle={{ color: 'var(--text-secondary)' }}
                                 contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                 itemStyle={{ color: 'var(--text-primary)' }}

@@ -9,7 +9,7 @@ import { getFiscalRange } from '../lib/dateUtils';
 import AddExpenseModal from './AddExpenseModal';
 
 interface TransactionsListProps {
-    type?: 'expense' | 'income' | 'recurring' | 'debt';
+    type?: 'expense' | 'income' | 'recurring' | 'debt' | 'recurring_income';
     currentDate: Date;
     currency?: { code: string, symbol: string };
 }
@@ -140,6 +140,16 @@ const SwipeableItem = ({ item, type, currentDate, onEdit, onDelete, togglePaid, 
                         }}>
                             {isIncome ? '+' : '-'} {currency.symbol} {parseFloat(item.amount).toFixed(2)}
                         </p>
+                        {item.originalCurrency && item.originalCurrency !== currency.code && (
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                background: 'var(--glass-border)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px'
+                            }}>
+                                <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                                    {item.originalCurrency} {parseFloat(item.originalAmount || 0).toFixed(2)}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -186,7 +196,9 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
 
         if (type === 'income') {
             primaryCollection = 'ingresos';
-            secondaryCollection = 'ingresos_recurrentes';
+            // recurring income is handled exclusively by type='recurring_income'
+        } else if (type === 'recurring_income') {
+            primaryCollection = 'ingresos_recurrentes';
         } else if (type === 'recurring') {
             primaryCollection = 'gastos_recurrentes';
         } else if (type === 'debt') {
@@ -225,7 +237,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type = 'expense', c
 
         // Primary Listener
         let qPrimary;
-        if (type === 'recurring' || type === 'debt') {
+        if (type === 'recurring' || type === 'debt' || type === 'recurring_income') {
             qPrimary = query(collection(db, 'users', uid, primaryCollection), orderBy('date', 'desc'), limit(50));
         } else {
             qPrimary = query(
