@@ -755,7 +755,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                                 ))}
                               </Pie>
                               <Tooltip
-                                formatter={(value: any, name: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name]}
+                                formatter={(value: any, name?: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name || '']}
                                 contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                 itemStyle={{ color: 'var(--text-primary)' }}
                               />
@@ -798,7 +798,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings, currentDate, chan
                               <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} interval={3} />
                               <YAxis tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val > 1000 ? (val / 1000).toFixed(1) + 'k' : val}`} />
                               <Tooltip
-                                formatter={(value: any, name: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name]}
+                                formatter={(value: any, name?: string) => [`${currency.symbol} ${Number(value).toLocaleString()}`, name || '']}
                                 labelStyle={{ color: 'var(--text-secondary)' }}
                                 contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                 itemStyle={{ color: 'var(--text-primary)' }}
